@@ -98,6 +98,14 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - **Menos barulho:** o @câmbio só posta quando o dólar mexe 0,5% ou mais (ou uma vez por semana); o @lembranças traz no máximo uma lembrança por dia.
 - **Ajustes** agora fica na engrenagem do topo da aba Perfis.
 
+## O plano e os carrosséis (esta versão)
+
+- **Configurar meu dinheiro:** assistente de 10 passos (saldos de hoje, renda, benefícios, divisão, contas fixas com data de fim, compromissos futuros, eventos do ano, metas e robôs). Abre pelo aviso no Início ou em Perfis → engrenagem → Meu plano.
+- **Recomeçar do zero:** no passo 1 do assistente, com opção de exportar backup antes.
+- **Posts vivos em carrossel:** @meumês, @contas, @reserva e @horizonte atualizam sozinhos e fecham no fim do período, virando o arquivo mês a mês no perfil de cada robô.
+- **@holerite:** compara cada pagamento com o previsto e oferece atualizar a previsão quando a renda muda.
+- O que tem data anterior ao dia em que você informou os saldos aparece como "já no saldo" e não conta de novo.
+
 ## Próximas etapas
 
 3. Carteira de FIIs no Pablo Rico e o @fii
