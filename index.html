@@ -284,6 +284,40 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 .lform{margin:8px 16px;padding:4px 0 8px;border-radius:14px;background:var(--surface)}
 .lform .field{padding:8px 12px}
 .sel{min-height:46px;padding:0 12px;border-radius:12px;border:1px solid #2A2D38;background:var(--surface-2);width:100%}
+button.tile{border:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.linkish{border:0;background:transparent;padding:0;text-align:left;color:inherit;font:inherit}
+/* explorar e perfil de robô */
+.xcard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.xcard .bot-av{width:52px;height:52px;border-radius:16px}
+.xcard .bot-av svg{width:24px;height:24px}
+.xcard .mid{display:flex;flex-direction:column;gap:3px;min-width:0}
+.xcard .mid b{font-size:15px}
+.xcard .mid span{font-size:13px;color:var(--fg-2);line-height:1.45}
+.xcard .mid small{font-size:11px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.8px}
+.btn.seg{min-height:36px;padding:0 14px;font-size:13px;border-radius:10px;background:var(--fg);color:var(--bg)}
+.btn.seg.on{background:var(--surface-2);color:var(--fg)}
+.bhead{display:flex;align-items:center;gap:20px;padding:6px 16px 12px}
+.bhead .bot-av{width:92px;height:92px;border-radius:26px;border-width:2px}
+.bhead .bot-av svg{width:40px;height:40px}
+.bq{margin:0 16px 12px;padding:4px 14px;border-radius:14px;background:var(--surface)}
+.bq div{padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.bq div:last-child{border-bottom:0}
+.bq b{font-size:12px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.bq span{font-size:13px;color:var(--fg-2);line-height:1.5}
+.bactions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:0 16px 12px}
+.bell{display:inline-flex;align-items:center;gap:8px}
+.bell svg{width:18px;height:18px}
+.niveis{margin:0 16px 14px;padding:6px;border-radius:14px;background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.niveis p{margin:6px 10px 4px;font-size:13px;color:var(--fg-2)}
+.niveis button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 12px;border-radius:10px;border:0;background:transparent;text-align:left;font-size:14px}
+.niveis button.on{background:var(--surface-2)}
+.niveis button small{display:block;font-size:12px;color:var(--fg-3);margin-top:2px}
+.niveis button .ck{width:20px;height:20px;border-radius:50%;border:2px solid #3A3E4A;flex-shrink:0}
+.niveis button.on .ck{border-color:var(--ok);background:radial-gradient(var(--ok) 45%, transparent 50%)}
+.tile.bt{background:var(--bgc);color:var(--fgc);justify-content:space-between;border:0;text-align:left;cursor:pointer}
+.tile.bt .c{color:var(--fgc);opacity:.8}
+.tile.bt .num{color:var(--fg)}
+.tile.bt .t2{position:relative;z-index:1;font-size:12px;line-height:1.35;color:var(--fg);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -317,11 +351,31 @@ const CATS = {
   transfer:["Mesada","Guardar","Investir","Reembolso","Outro"]
 };
 const BOTS = {
-  cambio:    {nome:"@câmbio",     cor:"ciano",   desc:"Cotação do dólar uma vez por dia, com a variação."},
-  lembretes: {nome:"@lembretes",  cor:"roxo",    desc:"Avisa no dia de cada lembrete que você cadastrar."},
-  resumo:    {nome:"@resumo",     cor:"verde",   desc:"Toda segunda, o que cada personalidade movimentou na semana anterior."},
-  lembrancas:{nome:"@lembranças", cor:"dourado", desc:"Traz de volta posts com foto de 1 semana, 1 mês e 1 ano atrás."}
+  cambio:    {nome:"@câmbio", titulo:"Câmbio", cor:"ciano", tipo:"público",
+              desc:"Acompanho o dólar e aviso quando ele se mexe de verdade.",
+              faz:"Busco a cotação do dólar comercial e mostro a variação do dia, a máxima, a mínima e a linha dos últimos registros.",
+              quando:"Só posto quando o dólar varia 0,5% ou mais no dia, ou uma vez por semana para você não perder o fio. Importante: variação de 1% ou mais.",
+              dados:"Nenhum dado seu. Uso só a cotação pública (AwesomeAPI, com reserva na ExchangeRate-API)."},
+  lembretes: {nome:"@lembretes", titulo:"Lembretes", cor:"roxo", tipo:"pessoal",
+              desc:"Te lembro das datas que importam e já deixo o post pronto.",
+              faz:"No dia de cada lembrete cadastrado em Ajustes, posto um aviso com o botão Registrar agora, que abre o post preenchido.",
+              quando:"Só nos dias dos seus lembretes. Todo lembrete conta como importante.",
+              dados:"Só os lembretes que você cadastrou. O que eu posto fica só no seu aparelho."},
+  resumo:    {nome:"@resumo", titulo:"Resumo", cor:"verde", tipo:"pessoal",
+              desc:"Toda segunda, conto como foi a semana de cada personalidade.",
+              faz:"Somo o que entrou e saiu de cada personalidade na semana anterior e mostro quem mais gastou.",
+              quando:"Uma vez por semana, na segunda, e só se teve movimentação. Importante: quando os gastos sobem mais de 30% em relação à semana anterior.",
+              dados:"Suas movimentações. O que eu posto fica só no seu aparelho."},
+  lembrancas:{nome:"@lembranças", titulo:"Lembranças", cor:"dourado", tipo:"pessoal",
+              desc:"Trago de volta seus posts com foto. Vira um álbum da sua vida financeira.",
+              faz:"Procuro posts com foto de 1 semana, 1 mês ou 1 ano atrás e trago de volta o mais especial.",
+              quando:"No máximo uma lembrança por dia. Importante: lembranças de 1 ano.",
+              dados:"Suas movimentações com foto. O que eu posto fica só no seu aparelho."}
 };
+const NIVEIS = {todas:"Todas", importantes:"Só as importantes", nenhuma:"Nenhuma"};
+const segue = k => !!((S.cfg.follow||{})[k]||{}).seg;
+const nivel = k => ((S.cfg.follow||{})[k]||{}).notif || "nenhuma";
+const notificavel = a => !a.oculto && segue(a.bot) && (nivel(a.bot)==="todas" || (nivel(a.bot)==="importantes" && a.imp));
 const DIAS_SEM = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const brl = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"});
@@ -340,7 +394,7 @@ const S = {
   view:"home", perfil:null, month:today().slice(0,7), filtro:"all", busca:"",
   del:null, menu:null, ready:false, form:null, edit:null, crop:null, err:"", dbErro:false, importar:false, lform:null
 };
-const CFG_PADRAO = () => ({reservaMeses:6, bots:{cambio:true, lembretes:true, resumo:true, lembrancas:true}, lembretes:[], cambioHist:[]});
+const CFG_PADRAO = () => ({reservaMeses:6, follow:{}, lembretes:[], cambioHist:[], cambioCheck:""});
 const PM = () => Object.fromEntries(S.pers.map(p=>[p.id,p]));
 const getP = id => S.pers.find(p=>p.id===id);
 const nm = id => (getP(id)||{}).curto || "Removida";
@@ -525,13 +579,13 @@ function trails(m){
    +'<path d="M-10 88 C 140 92, 270 96, 410 '+(50+a/2)+'" fill="none" stroke="'+c2+'" stroke-width="1" opacity=".4"/>'
    +'</svg>';
 }
-function topMonth(){
+function topMonth(direita){
   return '<header class="top">'
    +'<button class="ibtn" data-a="nova" aria-label="Nova movimentação">'+I.plus+'</button>'
    +'<div class="month"><button class="ibtn" data-a="mes" data-n="-1" aria-label="Mês anterior">'+I.l+'</button>'
    +'<strong>'+esc(mesLabel(S.month))+'</strong>'
    +'<button class="ibtn" data-a="mes" data-n="1" aria-label="Próximo mês">'+I.r+'</button></div>'
-   +(()=>{ const n=S.auto.filter(a=>!a.lido&&!a.oculto).length; return '<button class="ibtn heart" data-a="go" data-v="notif" aria-label="Notificações'+(n?', '+n+' novas':'')+'">'+I.heart+(n?'<span class="dot"></span>':'')+'</button>'; })()
+   +(direita||(()=>{ const n=S.auto.filter(a=>!a.lido&&notificavel(a)).length; return '<button class="ibtn heart" data-a="go" data-v="notif" aria-label="Notificações'+(n?', '+n+' novas':'')+'">'+I.heart+(n?'<span class="dot"></span>':'')+'</button>'; })())
    +'</header>';
 }
 function topSimple(title, backTo){
@@ -545,6 +599,7 @@ function viewHome(){
   let h = topMonth();
   h += '<div class="stories">'+S.pers.map(p=>'<button class="story" data-a="perfil" data-p="'+esc(p.id)+'">'+ring(p)+'<span class="nm">'+esc(p.curto)+'</span><span class="sd num">'+money(saldo(p.id))+'</span></button>').join("")
     +'<button class="story" data-a="nova-pers"><span class="ring add"><span class="in">'+I.plus+'</span></span><span class="nm" style="color:var(--fg-2)">Nova</span><span class="sd">&nbsp;</span></button></div>';
+  if(S.ready && !Object.keys(BOTS).some(segue)) h += '<div class="notice" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>Siga robôs para o feed ganhar vida sozinho: dólar, lembretes, resumo da semana e lembranças.</span><button class="btn seg" data-a="go" data-v="explorar">Explorar</button></div>';
   if(S.dbTravado) h += '<div class="banner" role="alert">'+I.alert+'<span><b>Seus dados estão guardados, mas outra cópia do app está aberta e travou a atualização.</b> Feche o Finanças em todo lugar (o app instalado e as abas do navegador com este endereço), depois abra só um. Nada do que você fizer agora será salvo.</span></div>';
   else if(S.dbErro) h += '<div class="notice">Este navegador não deixou o app salvar no aparelho (aba anônima ou armazenamento bloqueado). O que registrar aqui some ao fechar.</div>';
   for(const p of S.pers){
@@ -554,7 +609,7 @@ function viewHome(){
     }
   }
   const list = doMes().map(m=>({k:"m",ts:m.ts,fix:!!m.fixado,o:m}))
-    .concat(S.auto.filter(a=>!a.oculto && ymOf(a.data)===S.month).map(a=>({k:"a",ts:a.ts,fix:false,o:a})))
+    .concat(S.auto.filter(a=>!a.oculto && segue(a.bot) && ymOf(a.data)===S.month).map(a=>({k:"a",ts:a.ts,fix:false,o:a})))
     .sort((a,b)=>(b.fix?1:0)-(a.fix?1:0)||b.ts-a.ts);
   if(!S.ready) h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>';
   else if(!list.length) h += '<div class="empty"><strong>Nada em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil.</div>';
@@ -568,7 +623,7 @@ function post(m){
   const sub = m.tipo==="transfer" ? "saiu do "+nm(m.de)+", chegou no "+nm(m.para)
             : m.tipo==="entrada" ? "entrou no "+nm(m.conta) : "saiu do "+nm(m.conta);
   let h = '<article class="post">'
-   +'<div class="ph"><div class="who">'+av(o)+'<div class="meta"><span class="t">'+esc(titulo(m))+(m.fixado?'<span class="pin">FIXADO</span>':'')+'</span><span class="s">'+esc(quando(m))+'</span></div></div>'
+   +'<div class="ph"><button class="who linkish" data-a="perfil" data-p="'+esc(origem(m))+'" aria-label="Abrir perfil de '+esc(nm(origem(m)))+'">'+av(o)+'<span class="meta"><span class="t">'+esc(titulo(m))+(m.fixado?'<span class="pin">FIXADO</span>':'')+'</span><span class="s">'+esc(quando(m))+'</span></span></button>'
    +'<button class="ibtn" data-a="menu" data-id="'+esc(m.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
   if(S.del===m.id) h += '<div class="confirm"><span>Apagar esta movimentação e a foto dela?</span><div class="row"><button class="btn" data-a="menu" data-id="">Cancelar</button><button class="btn danger" data-a="apagar" data-id="'+esc(m.id)+'">Apagar</button></div></div>';
   else if(S.menu===m.id) h += '<div class="pmenu"><button class="btn" data-a="editar-mov" data-id="'+esc(m.id)+'">'+I.edit+'Editar</button><button class="btn" data-a="pedir-apagar" data-id="'+esc(m.id)+'">'+I.trash+'Apagar</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
@@ -603,7 +658,7 @@ function sparkSVG(vals){
 function autoPost(a){
   const B = BOTS[a.bot]; if(!B) return "";
   let h = '<article class="post" id="post-'+esc(a.id)+'">'
-   +'<div class="ph"><div class="who">'+botAv(a.bot)+'<div class="meta"><span class="t">'+esc(B.nome)+'<span class="badge">auto</span></span><span class="s">'+esc(quando(a))+'</span></div></div>'
+   +'<div class="ph"><button class="who linkish" data-a="bot" data-b="'+a.bot+'" aria-label="Abrir perfil de '+esc(B.nome)+'">'+botAv(a.bot)+'<span class="meta"><span class="t">'+esc(B.nome)+'<span class="badge">robô</span></span><span class="s">'+esc(quando(a))+'</span></span></button>'
    +'<button class="ibtn" data-a="menu" data-id="'+esc(a.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
   if(S.menu===a.id) h += '<div class="pmenu"><button class="btn" data-a="ocultar" data-id="'+esc(a.id)+'">'+I.eyeoff+'Ocultar post</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   if(a.bot==="cambio"){
@@ -645,13 +700,71 @@ function tempoRel(ts){
 }
 function viewNotif(){
   let h = topSimple("Notificações","home");
-  const list = S.auto.filter(a=>!a.oculto).sort((a,b)=>b.ts-a.ts).slice(0,80);
-  if(!list.length) return h+'<div class="empty"><strong>Nada por aqui ainda</strong>Os robôs postam quando você abre o app: cotação do dólar, lembretes, resumo da semana e lembranças. Ligue ou desligue cada um em Ajustes.</div>';
+  const list = S.auto.filter(notificavel).sort((a,b)=>b.ts-a.ts).slice(0,80);
+  if(!list.length) return h+'<div class="empty"><strong>Nada por aqui ainda</strong>Aqui chegam os posts dos robôs que você segue, conforme o sininho de cada um.<div style="margin-top:14px"><button class="btn" data-a="go" data-v="explorar">'+I.search+'Explorar robôs</button></div></div>';
   h += list.map(a=>'<button class="nrow '+(a.lido?"":"unread")+'" data-a="ver-auto" data-id="'+esc(a.id)+'">'+botAv(a.bot)+'<span class="mid"><b>'+esc(BOTS[a.bot].nome)+'</b><span>'+esc(a.resumo||a.texto||"")+'</span></span><span class="when">'+tempoRel(a.ts)+'</span>'+(a.lido?'':'<span class="new" aria-label="nova"></span>')+'</button>').join("");
   return h;
 }
+/* ---------- explorar e perfis de robô ---------- */
+const sinoIcone = k => nivel(k)==="nenhuma" ? sv('<path d="M6 8a6 6 0 0 1 10.6-3.9M18 8c0 7 3 9 3 9H7"/><path d="M10 21h4M3 3l18 18"/>') : sv('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/>'+(nivel(k)==="todas"?'<path d="M2.5 7.5a9 9 0 0 1 2-4M21.5 7.5a9 9 0 0 0-2-4"/>':''));
+function postsDoBot(k){ return S.auto.filter(a=>a.bot===k && !a.oculto).sort((a,b)=>b.ts-a.ts); }
+function viewExplorar(){
+  let h = '<header class="top"><span style="width:44px;flex-shrink:0"></span><span class="h1">Explorar</span><span style="width:44px;flex-shrink:0"></span></header>';
+  h += '<div class="field" style="padding-top:0"><span class="help">Robôs são perfis automáticos. Siga os que interessam e escolha no sininho quando quer ser avisado.</span></div>';
+  h += Object.entries(BOTS).map(([k,b])=>'<div class="xcard"><button class="linkish" data-a="bot" data-b="'+k+'" aria-label="Abrir perfil de '+esc(b.nome)+'">'+botAv(k)+'</button>'
+    +'<button class="linkish mid" data-a="bot" data-b="'+k+'"><small>robô '+b.tipo+'</small><b>'+esc(b.nome)+'</b><span>'+esc(b.desc)+'</span></button>'
+    +'<button class="btn seg '+(segue(k)?"on":"")+'" data-a="'+(segue(k)?"bot":"seguir")+'" data-b="'+k+'">'+(segue(k)?"Seguindo":"Seguir")+'</button></div>').join("");
+  return h;
+}
+function niveisPainel(k, titulo){
+  return '<div class="niveis" role="group" aria-label="Notificações de '+esc(BOTS[k].nome)+'"><p>'+esc(titulo)+'</p>'
+    + [["todas","Toda vez que eu postar"],["importantes","Só quando for importante"],["nenhuma","Aparece no feed, sem aviso no coração"]].map(([v,dsc])=>
+      '<button class="'+(nivel(k)===v?"on":"")+'" data-a="nivel" data-b="'+k+'" data-n="'+v+'" aria-pressed="'+(nivel(k)===v)+'"><span>'+NIVEIS[v]+'<small>'+dsc+'</small></span><span class="ck"></span></button>').join("")
+    + '</div>';
+}
+function viewBot(){
+  const k = S.bot, b = BOTS[k]; if(!b) return topSimple("Robô","explorar");
+  const posts = postsDoBot(k);
+  const ult = posts[0];
+  let h = topSimple(b.nome, S.voltarBot||"explorar");
+  h += '<div class="bhead">'+botAv(k)+'<div class="stats"><div><span class="num">'+posts.length+'</span><span>posts</span></div><div><span class="num">'+(ult?tempoRel(ult.ts):"—")+'</span><span>último</span></div><div><span class="num" style="text-transform:capitalize">'+b.tipo+'</span><span>robô</span></div></div></div>';
+  h += '<div class="bio"><b>'+esc(b.titulo)+' <span class="badge">robô</span></b><span>'+esc(b.desc)+'</span></div>';
+  if(segue(k)) h += '<div class="bactions"><button class="btn" data-a="deixar" data-b="'+k+'">Seguindo · deixar de seguir</button><button class="btn bell" data-a="sino" data-b="'+k+'" aria-label="Notificações: '+NIVEIS[nivel(k)]+'">'+sinoIcone(k)+NIVEIS[nivel(k)].replace("Só as importantes","Importantes")+'</button></div>';
+  else h += '<div class="bactions" style="grid-template-columns:1fr"><button class="btn pri" data-a="seguir" data-b="'+k+'">Seguir</button></div>';
+  if(segue(k) && S.sinoAberto===k) h += niveisPainel(k, S.recemSeguido===k ? "Você começou a seguir. Quando quer ser avisado?" : "Notificações de "+b.nome);
+  h += '<div class="bq"><div><b>O que eu faço</b><span>'+esc(b.faz)+'</span></div><div><b>Quando eu posto</b><span>'+esc(b.quando)+'</span></div><div><b>O que eu vejo dos seus dados</b><span>'+esc(b.dados)+'</span></div></div>';
+  if(!posts.length) h += '<div class="empty"><strong>Nenhum post ainda</strong>'+(segue(k)?'Eu posto conforme as regras acima. Volte depois.':'Siga para eu começar a postar.')+'</div>';
+  else h += '<div class="grid">'+posts.map(tileBot).join("")+'</div>';
+  return h;
+}
+function tileBot(a){
+  const c = CORES[BOTS[a.bot].cor];
+  const st = ' style="--bgc:'+c.bg+';--fgc:'+c.fg+'"';
+  const open = 'data-a="botpost" data-id="'+esc(a.id)+'"';
+  if(a.bot==="lembrancas"){
+    const m = S.movs.find(x=>x.id===a.mid);
+    if(m && m.foto) return '<button class="tile ph" '+open+' aria-label="'+esc(a.rotulo)+'"><img data-foto="'+esc(m.foto)+'" alt=""><span class="c">'+esc(a.rotulo)+'</span><span class="num">'+dataBR(m.data)+'</span></button>';
+  }
+  let top = dataBR(a.data), mid = "";
+  if(a.bot==="cambio") mid = '<span class="num">'+brl.format(a.valor)+'</span><span class="c">'+(a.pct>0?"+":"")+a.pct.toFixed(2).replace(".",",")+'%</span>';
+  else if(a.bot==="resumo") mid = '<span class="t2">Semana '+dataBR(a.ini)+'–'+dataBR(a.fim)+'</span>';
+  else if(a.bot==="lembretes") mid = '<span class="t2">'+esc((a.texto||"").split(".")[0])+'</span>';
+  else mid = '<span class="t2">'+esc(a.resumo||"")+'</span>';
+  return '<button class="tile bt" '+open+st+'><span class="c">'+top+'</span>'+mid+'</button>';
+}
+function viewBotPost(){
+  const a = S.auto.find(x=>x.id===S.botpost);
+  let h = topSimple(a?BOTS[a.bot].nome:"Post", "bot");
+  return h + (a ? autoPost(a) : '<div class="empty"><strong>Post não encontrado</strong></div>');
+}
+async function seguir(k, on){
+  const f = Object.assign({}, S.cfg.follow||{});
+  f[k] = on ? Object.assign({notif:"importantes", desde:Date.now()}, f[k]||{}, {seg:true}) : Object.assign({}, f[k]||{}, {seg:false});
+  S.cfg.follow = f; await salvarCfg();
+}
+
 async function marcarLidas(){
-  const nov = S.auto.filter(a=>!a.lido);
+  const nov = S.auto.filter(a=>!a.lido && notificavel(a));
   if(!nov.length) return;
   for(const a of nov){ a.lido=true; if(IDB.db){ try{ await IDB.put("auto", Object.assign({},a)); }catch(_){} } }
 }
@@ -697,21 +810,21 @@ async function rodarRobos(){
   if(S.rodando || !S.ready) return; S.rodando=true;
   let mudou=false;
   try{
-    const hoje = today(), agora = Date.now(), bots = S.cfg.bots||{};
+    const hoje = today(), agora = Date.now();
     /* @lembretes */
-    if(bots.lembretes){
+    if(segue("lembretes")){
       for(const l of (S.cfg.lembretes||[])){
         for(const ym of [addMeses(hoje,-1).slice(0,7), hoje.slice(0,7)]){
           const alvo = ym+"-"+pad(Math.min(l.dia, ultimoDia(ym)));
           if(alvo>hoje || alvo<(l.criado||"0000")) continue;
           const id = "lemb-"+l.id+"-"+ym;
           mudou = await addAuto({id, bot:"lembretes", lid:l.id, data:alvo, ts:parseD(alvo).getTime()+8*3600e3, dia:l.dia, valor:l.valor||0,
-            texto:l.titulo+". "+descLemb(l), resumo:"Hoje é dia de: "+l.titulo, feito:false}) || mudou;
+            texto:l.titulo+". "+descLemb(l), resumo:"Hoje é dia de: "+l.titulo, feito:false, imp:true}) || mudou;
         }
       }
     }
     /* @resumo: semana anterior (segunda a domingo) */
-    if(bots.resumo){
+    if(segue("resumo")){
       const d = parseD(hoje); const dow = (d.getDay()+6)%7; const seg = addDias(hoje,-dow);
       const ini = addDias(seg,-7), fim = addDias(seg,-1), id = "resumo-"+ini;
       if(!S.auto.some(x=>x.id===id)){
@@ -721,33 +834,41 @@ async function rodarRobos(){
           const ent = sem.filter(m=>m.tipo==="entrada").reduce((s,m)=>s+m.valor,0);
           const gas = sem.filter(m=>m.tipo==="gasto").reduce((s,m)=>s+m.valor,0);
           const porP = S.pers.map(p=>({p, g:sem.filter(m=>m.tipo==="gasto"&&m.conta===p.id).reduce((s,m)=>s+m.valor,0)})).sort((a,b)=>b.g-a.g)[0];
-          const texto = "Semana passada entrou "+money(ent)+" e saiu "+money(gas)+" em gastos."+(porP&&porP.g?" Quem mais gastou: "+porP.p.curto+" ("+money(porP.g)+").":"");
-          mudou = await addAuto({id, bot:"resumo", data:seg, ts:parseD(seg).getTime()+7*3600e3, ini, fim, linhas, texto, resumo:"Resumo da semana: entrou "+money(ent)+", saiu "+money(gas)+"."}) || mudou;
+          const gasAnt = S.movs.filter(m=>m.tipo==="gasto" && m.data>=addDias(ini,-7) && m.data<=addDias(ini,-1)).reduce((s,m)=>s+m.valor,0);
+          const subiu = gasAnt>0 && gas > gasAnt*1.3;
+          const texto = "Semana passada entrou "+money(ent)+" e saiu "+money(gas)+" em gastos."+(porP&&porP.g?" Quem mais gastou: "+porP.p.curto+" ("+money(porP.g)+").":"")+(subiu?" Os gastos subiram "+Math.round((gas/gasAnt-1)*100)+"% em relação à semana anterior.":"");
+          mudou = await addAuto({id, bot:"resumo", data:seg, ts:parseD(seg).getTime()+7*3600e3, ini, fim, linhas, texto, imp:subiu, resumo:"Resumo da semana: entrou "+money(ent)+", saiu "+money(gas)+"."+(subiu?" Gastos subiram.":"")}) || mudou;
         }
       }
     }
     /* @lembranças */
-    if(bots.lembrancas){
-      const alvos = [{k:"1s", s:addDias(hoje,-7), r:"Há 1 semana"}, {k:"1m", s:addMeses(hoje,-1), r:"Há 1 mês"}, {k:"1a", s:addMeses(hoje,-12), r:"Há 1 ano"}];
+    if(segue("lembrancas") && !S.auto.some(x=>x.bot==="lembrancas" && x.data===hoje)){
+      const alvos = [{k:"1a", s:addMeses(hoje,-12), r:"Há 1 ano"}, {k:"1m", s:addMeses(hoje,-1), r:"Há 1 mês"}, {k:"1s", s:addDias(hoje,-7), r:"Há 1 semana"}];
       for(const al of alvos){
-        const m = S.movs.filter(x=>x.foto && x.data===al.s).sort((a,b)=>b.valor-a.valor)[0];
+        const m = S.movs.filter(x=>x.foto && x.data===al.s && !S.auto.some(a=>a.id==="memo-"+x.id+"-"+al.k)).sort((a,b)=>b.valor-a.valor)[0];
         if(!m) continue;
-        mudou = await addAuto({id:"memo-"+m.id+"-"+al.k, bot:"lembrancas", mid:m.id, data:hoje, ts:agora, rotulo:al.r,
+        mudou = await addAuto({id:"memo-"+m.id+"-"+al.k, bot:"lembrancas", mid:m.id, data:hoje, ts:agora, rotulo:al.r, imp:al.k==="1a",
           resumo:al.r+": "+titulo(m)+(m.legenda?" · "+m.legenda:""), texto:titulo(m)}) || mudou;
+        break; /* no máximo uma lembrança por dia */
       }
     }
     if(mudou) render();
     /* @câmbio (rede, por último) */
-    if(bots.cambio && !S.auto.some(x=>x.id==="cambio-"+hoje)){
+    /* consulta uma vez por dia para manter a linha do gráfico, mas só posta quando vale a pena */
+    if(segue("cambio") && S.cfg.cambioCheck!==hoje){
       const q = await cotacaoDolar();
       if(q){
         const hist = (S.cfg.cambioHist||[]).filter(x=>x.d!==hoje).concat([{d:hoje, v:q.bid}]).slice(-30);
-        S.cfg.cambioHist = hist; await salvarCfg();
-        const forte = Math.abs(q.pct)>=1;
-        const ok = await addAuto({id:"cambio-"+hoje, bot:"cambio", data:hoje, ts:Date.now(), valor:q.bid, pct:q.pct, max:q.max, min:q.min, fonte:q.fonte,
-          hist:hist.map(x=>x.v), resumo:"Dólar a "+brl.format(q.bid)+" ("+(q.pct>0?"+":"")+q.pct.toFixed(2).replace(".",",")+"% no dia)"+(forte?". Movimento forte.":"."),
-          legenda: forte ? (q.pct>0?"O dólar subiu forte hoje. Compras em dólar ficaram mais caras.":"O dólar caiu forte hoje. Bom momento para compras em dólar.") : ""});
-        if(ok) render();
+        S.cfg.cambioHist = hist; S.cfg.cambioCheck = hoje; await salvarCfg();
+        const ultimo = S.auto.filter(x=>x.bot==="cambio").sort((a,b)=>b.ts-a.ts)[0];
+        const diasDesde = ultimo ? Math.round((parseD(hoje)-parseD(ultimo.data))/86400e3) : 99;
+        const mexeu = Math.abs(q.pct)>=0.5, forte = Math.abs(q.pct)>=1;
+        if(mexeu || diasDesde>=7){
+          const ok = await addAuto({id:"cambio-"+hoje, bot:"cambio", data:hoje, ts:Date.now(), valor:q.bid, pct:q.pct, max:q.max, min:q.min, fonte:q.fonte, imp:forte,
+            hist:hist.map(x=>x.v), resumo:"Dólar a "+brl.format(q.bid)+" ("+(q.pct>0?"+":"")+q.pct.toFixed(2).replace(".",",")+"% no dia)"+(forte?". Movimento forte.":mexeu?".":". Resumo da semana."),
+            legenda: forte ? (q.pct>0?"O dólar subiu forte hoje. Compras em dólar ficaram mais caras.":"O dólar caiu forte hoje. Bom momento para compras em dólar.") : (mexeu?"":"Semana tranquila no dólar. Passei só para manter você no fio.")});
+          if(ok) render();
+        }
       }
     }
   }catch(e){ console.warn("robôs:", e); }
@@ -757,7 +878,7 @@ async function rodarRobos(){
 function viewPerfil(){
   if(!getP(S.perfil)) S.perfil = S.pers[0] && S.pers[0].id;
   const p = getP(S.perfil);
-  let h = topMonth();
+  let h = topMonth('<button class="ibtn" data-a="go" data-v="ajustes" aria-label="Ajustes">'+I.gear+'</button>');
   h += '<div class="ptabs">'+S.pers.map(k=>'<button class="ptab '+(k.id===S.perfil?"on":"")+'" data-a="perfil" data-p="'+esc(k.id)+'" aria-pressed="'+(k.id===S.perfil)+'">'+av(k)+esc(k.curto)+'</button>').join("")
     +'<button class="ptab new" data-a="nova-pers">'+'+ Nova'+'</button></div>';
   if(!p) return h+'<div class="empty"><strong>Nenhuma personalidade</strong>Crie a primeira para começar.</div>';
@@ -808,13 +929,13 @@ function viewExtrato(){
 }
 
 function viewAjustes(){
-  let h = '<header class="top"><span style="width:44px;flex-shrink:0"></span><span class="h1">Ajustes</span><span style="width:44px;flex-shrink:0"></span></header>';
+  let h = topSimple("Ajustes","perfil");
   h += '<div class="sec">Personalidades</div><div class="plist" style="padding-top:6px">'
     + S.pers.map(p=>'<button data-a="editar-pers" data-p="'+esc(p.id)+'">'+av(p)+'<span><b style="display:block;font-size:14px">'+esc(p.nome)+'</b><span style="font-size:12px;color:var(--fg-3)">'+money(saldo(p.id))+(p.limite>0?' · limite '+money(p.limite):'')+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="nova-pers"><span class="av" style="'+vars(null)+'">'+I.plus+'</span><span style="color:var(--fg-2)">Criar personalidade</span></button></div>';
-  h += '<div class="sec">Robôs</div><div style="padding-top:6px">'
-    + Object.entries(BOTS).map(([k,b])=>'<div class="tgl"><div class="t">'+botAv(k)+'<span><b>'+esc(b.nome)+'</b><small>'+esc(b.desc)+'</small></span></div><input type="checkbox" class="sw-in" id="bot-'+k+'" '+((S.cfg.bots||{})[k]?"checked":"")+' aria-label="Ligar '+esc(b.nome)+'"></div>').join("")
-    + '</div>';
+  h += '<div class="sec">Robôs que você segue</div><div class="plist" style="padding-top:6px">'
+    + Object.entries(BOTS).filter(([k])=>segue(k)).map(([k,b])=>'<button data-a="bot" data-b="'+k+'">'+botAv(k)+'<span><b style="display:block;font-size:14px">'+esc(b.nome)+'</b><span style="font-size:12px;color:var(--fg-3)">Notificações: '+NIVEIS[nivel(k)]+'</span></span>'+I.r+'</button>').join("")
+    + '<button data-a="go" data-v="explorar"><span class="av" style="'+vars(null)+'">'+I.search+'</span><span style="color:var(--fg-2)">Explorar robôs</span></button></div>';
   h += '<div class="sec">Lembretes</div><div class="field" style="padding-bottom:0"><span class="help">No dia de cada lembrete, o @lembretes posta um aviso com o botão "Registrar agora", que já abre o post preenchido.</span></div>';
   const ls = (S.cfg.lembretes||[]).slice().sort((a,b)=>a.dia-b.dia);
   h += ls.map(l=>'<div class="lrow"><span class="lday"><b>'+l.dia+'</b><small>dia</small></span><span class="mid"><b>'+esc(l.titulo)+'</b><span>'+esc(descLemb(l))+'</span></span><button class="ibtn" data-a="lemb-editar" data-id="'+esc(l.id)+'" aria-label="Editar lembrete">'+I.edit+'</button></div>').join("");
@@ -1121,11 +1242,18 @@ async function importar(file){
 }
 function montarCfg(c){
   const p = CFG_PADRAO();
+  let follow = c.follow && typeof c.follow==="object" ? c.follow : null;
+  if(!follow){
+    /* versão anterior: chavinhas ligadas viram "seguindo", com só as importantes */
+    follow = {};
+    for(const [k,v] of Object.entries(c.bots||{})) if(v && BOTS[k]) follow[k] = {seg:true, notif:"importantes", desde:Date.now()};
+  }
   return Object.assign(p, {
     reservaMeses: c.reservaMeses!=null ? c.reservaMeses : p.reservaMeses,
-    bots: Object.assign(p.bots, c.bots||{}),
+    follow,
     lembretes: Array.isArray(c.lembretes) ? c.lembretes : [],
-    cambioHist: Array.isArray(c.cambioHist) ? c.cambioHist : []
+    cambioHist: Array.isArray(c.cambioHist) ? c.cambioHist : [],
+    cambioCheck: c.cambioCheck || ""
   });
 }
 function personalidadesPadrao(oldCfg){
@@ -1141,17 +1269,17 @@ function personalidadesPadrao(oldCfg){
    RENDER
    ====================================================================== */
 function renderNav(){
-  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : S.view;
+  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost") ? "explorar" : S.view==="ajustes" ? "perfil" : S.view;
   const it = (k,icon,label)=>'<button class="ibtn '+(v===k?"on":"")+'" data-a="go" data-v="'+k+'" aria-label="'+label+'" '+(v===k?'aria-current="page"':'')+'>'+icon+'</button>';
-  document.getElementById("nav").innerHTML = it("home",I.home,"Início")+it("extrato",I.list,"Extrato")
+  document.getElementById("nav").innerHTML = it("home",I.home,"Início")+it("explorar",I.search,"Explorar")
     +'<button class="plus" data-a="nova" aria-label="Nova movimentação">'+I.plus+'</button>'
-    +it("perfil",I.user,"Perfis")+it("ajustes",I.gear,"Ajustes");
+    +it("extrato",I.list,"Extrato")+it("perfil",I.user,"Perfis");
 }
 function render(){
   const app = document.getElementById("app");
   const ae = document.activeElement;
   const focusId = ae && ae.id && app.contains(ae) ? ae.id : null;
-  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():viewHome();
+  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="botpost"?viewBotPost():viewHome();
   renderNav();
   hidratarFotos(app);
   if(focusId){ const el=document.getElementById(focusId); if(el){ el.focus(); if(el.setSelectionRange && /^(text|search)$/.test(el.type||"text") && el.tagName==="INPUT"){ const l=el.value.length; try{el.setSelectionRange(l,l);}catch(e){} } } }
@@ -1171,7 +1299,13 @@ document.addEventListener("click", e=>{
     case "editar-mov": { const m=S.movs.find(x=>x.id===b.dataset.id); S.menu=null; if(m) abrirNova(null,null,m); break; }
     case "ocultar": { const a=S.auto.find(x=>x.id===b.dataset.id); S.menu=null; if(a){ a.oculto=true; if(IDB.db) IDB.put("auto",Object.assign({},a)).catch(()=>{}); } render(); toast("Post ocultado"); break; }
     case "registrar-lemb": { const a=S.auto.find(x=>x.id===b.dataset.id); const l=a&&(S.cfg.lembretes||[]).find(x=>x.id===a.lid); if(l) abrirNova(null,{tipo:l.tipo,conta:l.conta,de:l.de,para:l.para,valor:l.valor,categoria:l.categoria,legenda:l.titulo,autoId:a.id}); break; }
-    case "ver-auto": { const a=S.auto.find(x=>x.id===b.dataset.id); if(!a) break; S.month=ymOf(a.data); S.view="home"; render(); const el=document.getElementById("post-"+a.id); if(el) el.scrollIntoView({block:"start"}); else window.scrollTo(0,0); break; }
+    case "ver-auto": { const a=S.auto.find(x=>x.id===b.dataset.id); if(!a) break; S.bot=a.bot; S.botpost=a.id; S.view="botpost"; render(); window.scrollTo(0,0); break; }
+    case "bot": if(S.view!=="bot" && S.view!=="botpost") S.voltarBot = S.view==="notif"?"home":S.view; S.bot=b.dataset.b; S.sinoAberto=null; S.recemSeguido=null; S.view="bot"; render(); window.scrollTo(0,0); break;
+    case "seguir": { const k=b.dataset.b; seguir(k,true).then(()=>{ if(S.view!=="bot"){ S.voltarBot=S.view; } S.bot=k; S.view="bot"; S.sinoAberto=k; S.recemSeguido=k; render(); window.scrollTo(0,0); toast("Seguindo "+BOTS[k].nome); rodarRobos(); }); break; }
+    case "deixar": { const k=b.dataset.b; seguir(k,false).then(()=>{ S.sinoAberto=null; render(); toast("Você deixou de seguir "+BOTS[k].nome); }); break; }
+    case "sino": S.sinoAberto = S.sinoAberto===b.dataset.b ? null : b.dataset.b; S.recemSeguido=null; render(); break;
+    case "nivel": { const k=b.dataset.b, n=b.dataset.n; S.cfg.follow=Object.assign({},S.cfg.follow,{[k]:Object.assign({},S.cfg.follow[k],{notif:n})}); salvarCfg(); S.sinoAberto=null; S.recemSeguido=null; render(); toast("Notificações: "+NIVEIS[n]); break; }
+    case "botpost": S.botpost=b.dataset.id; S.view="botpost"; render(); window.scrollTo(0,0); break;
     case "lemb-novo": abrirLemb(null); break;
     case "lemb-editar": abrirLemb(b.dataset.id); break;
     case "lemb-cancelar": S.lform=null; render(); break;
@@ -1232,7 +1366,6 @@ document.addEventListener("input", e=>{
 document.addEventListener("change", e=>{
   const t = e.target;
   if(t.id==="arq-backup" && t.files && t.files[0]){ importar(t.files[0]); return; }
-  if(t.id && t.id.startsWith("bot-")){ const k=t.id.slice(4); S.cfg.bots=Object.assign({},S.cfg.bots,{[k]:t.checked}); salvarCfg(); toast(BOTS[k].nome+(t.checked?" ligado":" desligado")); if(t.checked) rodarRobos(); return; }
   if(S.lform){
     if(t.id==="lf-tipo"){ S.lform.tipo=t.value; render(); return; }
     if(t.id==="lf-conta") S.lform.conta=t.value;

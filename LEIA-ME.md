@@ -90,6 +90,14 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - Ajustes: ligar e desligar cada robô e cadastrar lembretes. O botão "Registrar agora" abre o post já preenchido.
 - Editar post (⋯ → Editar) e aviso quando uma personalidade ficaria com saldo negativo.
 
+## Robôs como perfis (esta versão)
+
+- Aba **Explorar** (lupa na barra de baixo): os robôs disponíveis, com botão Seguir.
+- **Perfil de cada robô:** bio, "o que eu faço", "quando eu posto", "o que eu vejo dos seus dados" e a grade com o histórico de posts.
+- **Sininho** em cada robô seguido: Todas, Só as importantes ou Nenhuma. Só o que você escolher aparece no coração.
+- **Menos barulho:** o @câmbio só posta quando o dólar mexe 0,5% ou mais (ou uma vez por semana); o @lembranças traz no máximo uma lembrança por dia.
+- **Ajustes** agora fica na engrenagem do topo da aba Perfis.
+
 ## Próximas etapas
 
 3. Carteira de FIIs no Pablo Rico e o @fii
