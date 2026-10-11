@@ -83,9 +83,15 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - Desinstalar o app ou limpar os dados do site **apaga** tudo. Por isso o backup importa.
 - O app no celular e o app no PC são separados: cada um guarda os próprios dados. Juntar os dois é a Fase 2 (nuvem).
 
+## Etapa 2 (esta versão)
+
+- Robôs que postam sozinhos quando você abre o app: @câmbio (dólar do dia), @lembretes (datas que você cadastra), @resumo (toda segunda, a semana anterior) e @lembranças (posts com foto de 1 semana, 1 mês e 1 ano atrás).
+- Coração no topo: notificações dos robôs, com bolinha quando tem novidade.
+- Ajustes: ligar e desligar cada robô e cadastrar lembretes. O botão "Registrar agora" abre o post já preenchido.
+- Editar post (⋯ → Editar) e aviso quando uma personalidade ficaria com saldo negativo.
+
 ## Próximas etapas
 
-2. Robôs e notificações: @câmbio, @lembranças, @resumo
 3. Carteira de FIIs no Pablo Rico e o @fii
 4. Projeção ("e se?"), lista de desejos e @poderdecompra
 
