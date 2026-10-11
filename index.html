@@ -361,8 +361,16 @@ const IDB = {
         if(!d.objectStoreNames.contains("cfg")) d.createObjectStore("cfg");
         if(!d.objectStoreNames.contains("fotos")) d.createObjectStore("fotos");
         if(!d.objectStoreNames.contains("pers")) d.createObjectStore("pers",{keyPath:"id"}); };
-      r.onsuccess = ()=>{ IDB.db=r.result; res(); };
-      r.onerror = ()=>rej(r.error);
+      const trava = setTimeout(()=>{ S.dbTravado=true; rej(new Error("bloqueado")); }, 5000);
+      r.onblocked = ()=>{ S.dbTravado=true; };
+      r.onsuccess = ()=>{
+        clearTimeout(trava); IDB.db=r.result;
+        /* se uma versão mais nova do app abrir, esta fecha o banco e recarrega, para não travar a atualização */
+        IDB.db.onversionchange = ()=>{ try{ IDB.db.close(); }catch(_){} IDB.db=null; location.reload(); };
+        if(S.dbTravado){ S.dbTravado=false; location.reload(); return; }
+        res();
+      };
+      r.onerror = ()=>{ clearTimeout(trava); rej(r.error); };
     });
   },
   tx(store, mode, fn){
@@ -537,7 +545,8 @@ function viewHome(){
   let h = topMonth();
   h += '<div class="stories">'+S.pers.map(p=>'<button class="story" data-a="perfil" data-p="'+esc(p.id)+'">'+ring(p)+'<span class="nm">'+esc(p.curto)+'</span><span class="sd num">'+money(saldo(p.id))+'</span></button>').join("")
     +'<button class="story" data-a="nova-pers"><span class="ring add"><span class="in">'+I.plus+'</span></span><span class="nm" style="color:var(--fg-2)">Nova</span><span class="sd">&nbsp;</span></button></div>';
-  if(S.dbErro) h += '<div class="notice">Este navegador não deixou o app salvar no aparelho (aba anônima ou armazenamento bloqueado). O que registrar aqui some ao fechar.</div>';
+  if(S.dbTravado) h += '<div class="banner" role="alert">'+I.alert+'<span><b>Seus dados estão guardados, mas outra cópia do app está aberta e travou a atualização.</b> Feche o Finanças em todo lugar (o app instalado e as abas do navegador com este endereço), depois abra só um. Nada do que você fizer agora será salvo.</span></div>';
+  else if(S.dbErro) h += '<div class="notice">Este navegador não deixou o app salvar no aparelho (aba anônima ou armazenamento bloqueado). O que registrar aqui some ao fechar.</div>';
   for(const p of S.pers){
     if(p.limite>0){
       const pct = Math.round(gastosMes(p.id)/p.limite*100);
