@@ -53,7 +53,7 @@ def views_txt(txt):
     if m:
         n = float(m.group(1).replace(",", "")) if not m.group(2) else float(m.group(1).replace(",", "."))
         return int(n * {"": 1, "K": 1e3, "M": 1e6, "B": 1e9}[m.group(2)])
-    m = re.search(r"([\d.,]+)\s*(mil|mi|bi)?\s*(?:de\s+)?visualiza", t)
+    m = re.search(r"([\d.,]+)\s*(mil|mi|bi)?\s*(?:de\s+)?visualiza", t) or re.search(r"(?:^|\|)\s*([\d.,]+)\s*(mil|mi|bi)\b", t)
     if m:
         n = float(m.group(1).replace(".", "").replace(",", ".")) if m.group(2) else float(m.group(1).replace(".", "").replace(",", ""))
         return int(n * {None: 1, "mil": 1e3, "mi": 1e6, "bi": 1e9}[m.group(2)])

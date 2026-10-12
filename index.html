@@ -96,6 +96,29 @@ button,label[for]{cursor:pointer}
 .sugc{flex:0 0 132px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:16px;background:var(--surface);text-align:center}
 .sugc b{font-size:13px}.sugc small{font-size:11px;color:var(--fg-3)}.sugc .btn{width:100%}
 .fhead{display:flex;gap:14px;align-items:center;padding:6px 16px 14px}.fhead div{display:flex;flex-direction:column;gap:3px}.fhead b{font-size:18px}.fhead span{font-size:13.5px;color:var(--fg-2)}.fhead small{font-size:12px;color:var(--fg-3)}
+/* poder de compra */
+.mk-pc{border:1px solid rgba(242,193,78,.35);background:linear-gradient(135deg,#2A2108,#161208);color:var(--fg);text-align:left}.mk-pc b{color:#F2C14E}
+.pc-slide{position:relative;padding:0;min-height:0;background:#000;overflow:hidden}
+.pc-foto{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+.pc-semfoto{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#2A2108,#05060A);color:#F2C14E}.pc-semfoto svg{width:64px;height:64px}
+.pc-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 16px 16px;display:flex;flex-direction:column;gap:6px;background:linear-gradient(transparent,rgba(5,6,10,.92) 45%)}
+.pc-badge{align-self:flex-start;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:color-mix(in srgb, var(--nc) 22%, rgba(5,6,10,.7));color:var(--nc);border:1px solid color-mix(in srgb, var(--nc) 55%, transparent)}
+.pc-nome{font-size:22px;line-height:1.2}.pc-preco{font-size:28px;font-weight:600;color:#F2C14E}.pc-msg{font-size:14.5px;line-height:1.45;color:#fff}
+.pc-reac{display:flex;gap:8px;flex-wrap:wrap}.pc-reac .btn{flex:1;min-width:90px}
+.pc-cap{margin:4px 16px 8px;padding:16px;border-radius:16px;background:radial-gradient(120% 90% at 100% 0%, rgba(242,193,78,.25), transparent 60%),var(--surface);display:flex;flex-direction:column;gap:8px}
+.pc-cap .lbl{font-size:12px;color:var(--fg-3);letter-spacing:1.2px;text-transform:uppercase}.pc-cap .big{font-size:34px;color:#F2C14E}.pc-cap .muted{font-size:12.5px;color:var(--fg-3);line-height:1.45}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 12px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line,#2A2D38);background:none;color:var(--fg-2);font-size:13px}.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 16px 18px}
+.pc-card{position:relative;display:flex;flex-direction:column;border:0;padding:0;border-radius:14px;overflow:hidden;background:var(--surface);color:var(--fg);text-align:left}
+.pc-card img,.pc-ph{width:100%;aspect-ratio:1/1;object-fit:cover;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#2A2108,#0B0D13);color:#F2C14E}.pc-ph svg{width:36px;height:36px}
+.pc-tag{position:absolute;left:8px;top:8px;max-width:calc(100% - 16px);padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(5,6,10,.75);color:var(--nc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-info{display:flex;flex-direction:column;gap:2px;padding:9px 10px 11px}.pc-info b{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.pc-info small{font-size:12.5px;color:#F2C14E}
+.pc-prog{height:4px;background:rgba(255,255,255,.08)}.pc-prog i{display:block;height:100%;background:#F2C14E}
+.pc-hero{position:relative;background:#000}.pc-hero img{display:block;width:100%;max-height:60vh;object-fit:cover}.pc-hero .pc-ov{position:absolute}
+.pc-hero:not(:has(img)) .pc-ov{position:relative;padding-top:20px}
+.pc-blk{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--surface)}
+.pc-fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.pc-fotos button{padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:none}.pc-fotos button.on{border-color:#F2C14E}.pc-fotos img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
 /* artes dos robôs */
 .arte{position:relative;margin:0 0 12px;border-radius:0;overflow:hidden}
 .arte-svg{display:block;width:100%;height:auto;aspect-ratio:320/170}
@@ -999,6 +1022,7 @@ function viewBot(){
   let h = topSimple(b.nome, S.voltarBot||"explorar");
   h += '<div class="bhead">'+botAv(k)+'<div class="stats"><div><span class="num">'+posts.length+'</span><span>posts</span></div><div><span class="num">'+(ult?tempoRel(ult.ts):"—")+'</span><span>último</span></div><div><span class="num" style="text-transform:capitalize">'+b.tipo+'</span><span>robô</span></div></div></div>';
   h += '<div class="bio"><b>'+esc(b.titulo)+' <span class="badge">robô</span></b><span>'+esc(b.desc)+'</span></div>';
+  if(k==="poderdecompra") h += '<div class="bactions" style="grid-template-columns:1fr"><button class="btn pri" data-a="pc-vitrine">💎 Abrir a vitrine</button></div>';
   if(segue(k)) h += '<div class="bactions"><button class="btn" data-a="deixar" data-b="'+k+'">Seguindo · deixar de seguir</button><button class="btn bell" data-a="sino" data-b="'+k+'" aria-label="Notificações: '+NIVEIS[nivel(k)]+'">'+sinoIcone(k)+NIVEIS[nivel(k)].replace("Só as importantes","Importantes")+'</button></div>';
   else h += '<div class="bactions" style="grid-template-columns:1fr"><button class="btn pri" data-a="seguir" data-b="'+k+'">Seguir</button></div>';
   if(segue(k) && S.sinoAberto===k) h += niveisPainel(k, S.recemSeguido===k ? "Você começou a seguir. Quando quer ser avisado?" : "Notificações de "+b.nome);
@@ -1014,6 +1038,10 @@ function tileBot(a){
   if(a.bot==="lembrancas"){
     const m = S.movs.find(x=>x.id===a.mid);
     if(m && m.foto) return '<button class="tile ph" '+open+' aria-label="'+esc(a.rotulo)+'"><img data-foto="'+esc(m.foto)+'" alt=""><span class="c">'+esc(a.rotulo)+'</span><span class="num">'+dataBR(m.data)+'</span></button>';
+  }
+  if(a.bot==="poderdecompra" && a.item){
+    const nv = NIVEL_PC[a.nivel]||NIVEL_PC[0];
+    return '<button class="tile ph" '+open+' aria-label="'+esc(a.item.nome)+'">'+(a.item.img?'<img src="'+esc(a.item.img)+'" alt="" referrerpolicy="no-referrer">':'')+'<span class="c">'+nv.ico+' '+esc(nv.t)+'</span><span class="num">'+money(a.item.preco)+'</span></button>';
   }
   let top = dataBR(a.data), mid = "";
   if(a.bot==="cambio") mid = '<span class="num">'+brl.format(a.valor)+'</span><span class="c">'+(a.pct>0?"+":"")+a.pct.toFixed(2).replace(".",",")+'%</span>';
@@ -1133,6 +1161,7 @@ async function rodarRobos(){
     }
     mudou = await robosInvest() || mudou;
     mudou = await robosPlano() || mudou;
+    try{ mudou = await roboPoder() || mudou; }catch(e){ console.warn("poder:", e); }
     if(mudou) render();
     /* @câmbio (rede, por último) */
     /* consulta uma vez por dia para manter a linha do gráfico, mas só posta quando vale a pena */
@@ -2262,9 +2291,9 @@ function viewAjustes(){
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
   h += '<div class="sec">Investimentos</div>';
   { const fd=S.cfg.feed||{}, lt=linkTickers(), lr=linkRobo(), meus=[...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))], fora=meus.filter(t=>!naLista(t)), falhou=meus.filter(t=>naLista(t)&&!noFeed(t));
-    const velho = fd.ts && Date.now()-fd.ts > 3*864e5;
+    const hNow = new Date().getHours(), velho = fd.ts && Date.now()-fd.ts > (hNow>=8 && hNow<=23 ? 3*3600e3 : 10*3600e3);
     h += '<div class="field"><label>Cotações automáticas (robô do GitHub)</label><span class="help">'
-      +(fd.ts&&!fd.erro?'<b style="color:'+(velho?'#FFC46B':'var(--ok)')+'">'+(velho?'Parado desde ':'Funcionando · última busca ')+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</b>. Busca cotação, proventos e CDI de hora em hora nos dias úteis. '
+      +(fd.ts&&!fd.erro?'<b style="color:'+(velho?'#FFC46B':'var(--ok)')+'">'+(velho?'Atrasado · última busca ':'Funcionando · última busca ')+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</b>. '+(velho?'O GitHub às vezes atrasa ou pula rodadas; se quiser agora, toque em Ver o robô → Run workflow. ':'Busca cotações, proventos, CDI, notícias e vídeos duas vezes por hora, das 7h às 23h. ')
         :'<b style="color:#FF8A96">Ainda não encontrei o robô'+(fd.erro?' ('+esc(fd.erro)+')':'')+'.</b> Siga o passo a passo do LEIA-ME para criar o arquivo .github/workflows/cotacoes.yml no GitHub. ')
       +(fd.tickers&&fd.tickers.length?'Na lista: '+fd.tickers.map(esc).join(", ")+'. ':'')
       +(fora.length?'<b style="color:#FFC46B">Faltam na lista: '+fora.map(esc).join(", ")+'.</b> ':'')
@@ -2821,7 +2850,7 @@ function personalidadesPadrao(oldCfg){
    RENDER
    ====================================================================== */
 function renderNav(){
-  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost"||S.view==="fonte") ? "explorar" : S.view==="ler" ? (S.voltarLer==="fonte"?"explorar":S.voltarLer||"home") : S.view==="ajustes" ? "perfil" : S.view;
+  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost"||S.view==="fonte"||S.view==="vitrine"||S.view==="pcitem"||S.view==="sonho") ? "explorar" : S.view==="ler" ? (S.voltarLer==="fonte"?"explorar":S.voltarLer||"home") : S.view==="ajustes" ? "perfil" : S.view;
   const it = (k,icon,label)=>'<button class="ibtn '+(v===k?"on":"")+'" data-a="go" data-v="'+k+'" aria-label="'+label+'" '+(v===k?'aria-current="page"':'')+'>'+icon+'</button>';
   document.getElementById("nav").innerHTML = it("home",I.home,"Início")+it("explorar",I.search,"Explorar")
     +'<button class="plus" data-a="nova" aria-label="Nova movimentação">'+I.plus+'</button>'
@@ -2832,7 +2861,7 @@ function render(){
   const ae = document.activeElement;
   const focusId = ae && ae.id && app.contains(ae) ? ae.id : null;
   const rolagem = {}; app.querySelectorAll(".slides[data-id]").forEach(el=>{ if(el.scrollLeft) rolagem[el.dataset.id]=el.scrollLeft; });
-  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="fonte"?viewFonte():S.view==="ler"?viewLer():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
+  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="fonte"?viewFonte():S.view==="ler"?viewLer():S.view==="vitrine"?viewVitrine():S.view==="pcitem"?viewItemPC():S.view==="sonho"?viewSonho():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
   renderNav();
   app.querySelectorAll(".slides[data-id]").forEach(el=>{ const x=rolagem[el.dataset.id]; if(x){ el.style.scrollBehavior="auto"; el.scrollLeft=x; } atualizarContador(el); });
   hidratarFotos(app);
@@ -3034,8 +3063,9 @@ function arteDe(a){ const f = ARTES[a.bot]; if(!f) return ""; try{ const h = f(a
 
 /* ---------- notícias, vídeos e mercado (o robô do GitHub busca; aqui você escolhe o que seguir) ---------- */
 async function carregarConteudo(forcar){
+  const tinha = !!S.cont;
   if(!S.cont && IDB.db){ try{ S.cont = await IDB.get("cfg","conteudo") || null; }catch(_){} }
-  if(!forcar && S.cont && Date.now()-(S.cont._chk||0) < 5*60e3) return false;
+  if(!forcar && S.cont && Date.now()-(S.cont._chk||0) < 5*60e3) return !tinha;
   const r = repoInfo(), urls = [];
   if(r) urls.push("https://raw.githubusercontent.com/"+r.dono+"/"+r.repo+"/main/"+repoArq(r,"conteudo.json")+"?t="+Date.now());
   urls.push("conteudo.json?t="+Date.now());
@@ -3108,6 +3138,7 @@ function faixaMercado(){
   if(l.btc) c.push(chip("Bitcoin", l.btc.v, l.btc.var, v=>"R$ "+Math.round(v/1000).toLocaleString("pt-BR")+" mil"));
   if(m.selic) c.push(chip("Selic", m.selic.v, null, v=>String(v).replace(".",",")+"%"));
   else if(S.cfg.cdi) c.push(chip("CDI", S.cfg.cdi.v, null, v=>String(v).replace(".",",")+"%"));
+  if(segue("poderdecompra") || S.vit){ const cp = capacidade(); c.unshift('<button class="mk mk-pc" data-a="pc-vitrine"><small>💎 Poder de compra</small><b class="num">'+money(cp.total)+'</b><i>abrir vitrine</i></button>'); }
   return c.length ? '<div class="mkt" aria-label="Mercado agora">'+c.join("")+'</div>' : "";
 }
 /* leitura dentro do app: notícia (trecho publicado pelo site) e vídeo (player do YouTube) */
@@ -3148,6 +3179,268 @@ function linhaFonte(f){
   return '<div class="xcard"><button class="linkish" data-a="fonte" data-f="'+esc(f.id)+'">'+fonteAv(f,true)+'</button>'
     + '<button class="linkish mid" data-a="fonte" data-f="'+esc(f.id)+'"><small>'+(f.tipo==="canal"?"canal do YouTube":"site de notícias")+(f.ok?'':' · indisponível')+'</small><b>'+esc(f.nome)+'</b><span>'+esc(f.desc||"")+'</span></button>'
     + '<button class="btn seg '+(segueFonte(f.id)?"on":"")+'" data-a="seguir-fonte" data-f="'+esc(f.id)+'">'+(segueFonte(f.id)?"Seguindo":"Seguir")+'</button></div>';
+}
+
+/* ---------- @poderdecompra: até onde o seu dinheiro chega ---------- */
+BOTS.poderdecompra = {nome:"@poderdecompra", titulo:"Poder de compra", cor:"dourado", tipo:"pessoal",
+  desc:"Mostro até onde o seu dinheiro chega: carros, casa, viagens, eletrônicos. Às vezes do nada.",
+  faz:"Comparo o preço de cada coisa da vitrine com o seu livre para gastar, seus investimentos (sem a reserva) e o ritmo de sobra do seu plano. Digo se já dá à vista, se a parcela cabe, quando fica ao seu alcance e quanto custa por mês de verdade.",
+  quando:"No máximo uma surpresa por dia, de preferência algo que mudou de nível ou que está na sua lista de desejos. Importante: quando um desejo seu fica ao seu alcance.",
+  dados:"Seu plano, seus saldos e investimentos. Preços: Tabela FIPE (carros e motos), FipeZap (m² da sua cidade) e preços de referência para o resto."};
+I.gem = sv('<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6"/>');
+BOT_ICON.poderdecompra = () => I.gem;
+const CATS_PC = {carro:"Carros", moto:"Motos", casa:"Casa", eletronico:"Eletrônicos", eletrodomestico:"Casa e cozinha", viagem:"Viagens", experiencia:"Experiências", outro:"Outros"};
+const NIVEL_PC = {
+  4:{k:"ja", t:"Já é seu", cor:"#3FBF7F", ico:"🟢"},
+  3:{k:"invest", t:"Dá à vista com seus investimentos", cor:"#6FDCA8", ico:"🟢"},
+  2:{k:"parcela", t:"Cabe parcelado", cor:"#F2C14E", ico:"🟡"},
+  1:{k:"chegando", t:"Tá chegando", cor:"#7FB0FF", ico:"🔵"},
+  0:{k:"longe", t:"Ainda não", cor:"#8E94A3", ico:"🔒"}
+};
+const cidadePC = () => S.cfg.cidade || "São Bernardo do Campo";
+
+async function carregarVitrine(forcar){
+  const tinha = !!S.vit;
+  if(!S.vit && IDB.db){ try{ S.vit = await IDB.get("cfg","vitrine") || null; }catch(_){} }
+  if(!forcar && S.vit && Date.now()-(S.vit._chk||0) < 6*3600e3) return !tinha;
+  const r = repoInfo(), urls = [];
+  if(r) urls.push("https://raw.githubusercontent.com/"+r.dono+"/"+r.repo+"/main/"+repoArq(r,"vitrine.json")+"?t="+Date.now());
+  urls.push("vitrine.json?t="+Date.now());
+  for(const u of urls){
+    try{ const j = await comTempo(u, 15000); if(j && Array.isArray(j.itens)){ j._chk = Date.now(); S.vit = j; if(IDB.db){ try{ await IDB.put("cfg", j, "vitrine"); }catch(_){} } return true; } }catch(_){}
+  }
+  return false;
+}
+function itensPC(){
+  const m2 = (S.vit && S.vit.m2 && S.vit.m2[cidadePC()]) || null;
+  const cat = ((S.vit && S.vit.itens) || []).map(it=>{
+    if(it.cat!=="casa") return it;
+    if(!m2) return null;
+    const uf = (m2.uf||"sp").toLowerCase(), cid = cidadePC().normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
+    return Object.assign({}, it, {preco: it.m2*m2.v*100, nome: it.nome+" em "+cidadePC(), detalhe:"m² médio de "+money(m2.v*100)+" ("+m2.mes+")",
+      links:[["Ver imóveis no ZAP", "https://www.zapimoveis.com.br/venda/imoveis/"+uf+"+"+cid+"/"]]});
+  }).filter(Boolean);
+  return cat.concat((S.cfg.sonhos||[]).map(s=>Object.assign({sonho:true}, s)));
+}
+const itemPC = id => itensPC().find(x=>x.id===id);
+const ehDesejo = id => !!(S.cfg.desejos||{})[id];
+
+/* quanto você tem para isso */
+function capacidade(){
+  let livre = 0; try{ livre = diario().livre || 0; }catch(_){}
+  const ids = livres().map(p=>p.id);
+  const invest = ids.reduce((t,id)=>t+investidoDe(id),0);
+  let ritmo = 0; try{ const pj = projecao(12); if(pj.length>1) ritmo = Math.round((pj[pj.length-1].v - pj[0].v)/(pj.length-1)); }catch(_){}
+  return {livre, invest, total: livre+invest, ritmo: Math.max(0, ritmo)};
+}
+const FIN = {carro:{n:48, i:.019, ent:.2}, moto:{n:36, i:.021, ent:.2}, casa:{n:360, i:.0095, ent:.2}, eletronico:{n:10, i:0, ent:0}, eletrodomestico:{n:10, i:0, ent:0}, viagem:{n:10, i:0, ent:0}, experiencia:{n:3, i:0, ent:0}, outro:{n:10, i:0, ent:0}};
+function parcelaDe(valor, n, i){ return i ? Math.round(valor*i/(1-Math.pow(1+i,-n))) : Math.round(valor/n); }
+function custoVeiculo(it){
+  if(it.cat!=="carro" && it.cat!=="moto") return null;
+  const p = it.preco, moto = it.cat==="moto";
+  return {ipva: Math.round(p*(moto?.02:.04)/12), seguro: Math.round(p*(moto?.06:.045)/12), comb: moto?20000:55000, manut: Math.round(p*.015/12)};
+}
+function analisePC(it, cap){
+  cap = cap || capacidade();
+  const p = it.preco||0, f = FIN[it.cat] || FIN.outro;
+  const ent = Math.round(p*f.ent), parc = parcelaDe(p-ent, f.n, f.i), cv = custoVeiculo(it);
+  const custoMes = parc + (cv ? cv.ipva+cv.seguro+cv.comb+cv.manut : 0);
+  const cabeParc = cap.ritmo>0 && ent <= cap.total && custoMes <= cap.ritmo*0.6;
+  const falta = Math.max(0, p - cap.total), meses = falta<=0 ? 0 : (cap.ritmo>0 ? Math.ceil(falta/cap.ritmo) : Infinity);
+  const nivel = p<=cap.livre ? 4 : p<=cap.total ? 3 : cabeParc ? 2 : meses<=24 ? 1 : 0;
+  const quando = meses===Infinity ? null : somaMes(ymHoje(), meses);
+  return {nivel, ent, parc, n:f.n, juros:f.i, custoMes, cv, cabeParc, falta, meses, quando, total:ent+parc*f.n, prog: p ? Math.min(1, cap.total/p) : 0};
+}
+const mesAno = ym => ym ? MESES[Number(ym.slice(5))-1].slice(0,3)+"/"+ym.slice(2,4) : "";
+function frasePC(it, an, melhorou){
+  const n = it.nome, pre = melhorou ? "🔓 Desbloqueado! " : "";
+  const r = hash(it.id + today()) % 3;
+  const F = {
+    4:["🐋 Olha quem pode: "+n+" cabe no seu livre de hoje. À vista, sem mexer em nada.", "Já é seu. "+n+" sai hoje sem encostar nos investimentos.", "Você pode. Só isso. "+n+" à vista, hoje."],
+    3:["Se quisesse, "+n+" saía hoje à vista. Mas aí lá se vão seus investimentos 😅", "Com o que você investiu, "+n+" já seria seu à vista.", "Dinheiro pra "+n+" você já tem. A pergunta é se vale mexer no que rende."],
+    2:[n+"? A parcela de "+money(an.parc)+" cabe no seu mês.", "Parcelado, "+n+" já cabe: "+an.n+"× de "+money(an.parc)+".", "Dá pra encaixar "+n+" no seu mês, parcelado."],
+    1:[n+" tá chegando: no seu ritmo, é seu em "+mesAno(an.quando)+".", "Faltam "+money(an.falta)+" pra "+n+". Chega em "+mesAno(an.quando)+".", "Mais "+an.meses+" "+(an.meses===1?"mês":"meses")+" no seu ritmo e "+n+" é seu."],
+    0:[n+": faltam "+money(an.falta)+(an.quando?". No seu ritmo, "+mesAno(an.quando)+". Bora?":". Bora aumentar esse ritmo?"), "Ainda não, mas "+n+" está no radar: "+Math.round(an.prog*100)+"% do caminho.", "Sonhar não custa: "+n+" está a "+money(an.falta)+" de distância."]
+  };
+  return pre + F[an.nivel][r];
+}
+
+/* sorteio diário: o que mudou de nível, seus desejos, o que você curte, um pouco de sorte */
+function afinidade(cat){ let s=0; for(const [id,v] of Object.entries(S.cfg.pcReacao||{})){ const it=itemPC(id); if(it && it.cat===cat) s+=v; } return Math.max(-3, Math.min(5, s)); }
+function escolherSurpresa(){
+  const cap = capacidade(), itens = itensPC().filter(it=>it.preco>0), hoje = today();
+  const prev = S.cfg.pcNivel || {}, visto = S.cfg.pcVisto || {}, reac = S.cfg.pcReacao || {};
+  let melhor = null;
+  for(const it of itens){
+    if(reac[it.id]===-1) continue;
+    const an = analisePC(it, cap); let s = an.nivel*4 + Math.random()*12;
+    const melhorou = prev[it.id]!=null && an.nivel > prev[it.id];
+    if(melhorou) s += 60;
+    if(ehDesejo(it.id)) s += 25;
+    s += afinidade(it.cat)*8;
+    if(visto[it.id]){ const d = Math.round((parseD(hoje)-parseD(visto[it.id]))/864e5); if(d<14) s -= (14-d)*4; }
+    if(!melhor || s>melhor.s) melhor = {it, an, melhorou, s};
+  }
+  return melhor;
+}
+async function roboPoder(){
+  if(!segue("poderdecompra") || !S.vit) return false;
+  const hoje = today(); let mudou = false;
+  /* preço FIPE dos seus sonhos, uma vez por mês */
+  for(const s of (S.cfg.sonhos||[])){
+    if(s.fipe && Date.now()-(s.precoTs||0) > 25*864e5){
+      try{ const v = await fipeGet(s.fipe.tipo+"/marcas/"+s.fipe.marca+"/modelos/"+s.fipe.modelo+"/anos/"+s.fipe.ano); s.preco = reaisTxt(v.Valor); s.precoTs = Date.now(); s.fonte = "Tabela FIPE · "+(v.MesReferencia||"").trim(); mudou = true; }catch(_){}
+    }
+  }
+  if(S.cfg.pcDia === hoje){ if(mudou) await salvarCfg(); return mudou; }
+  const esc0 = escolherSurpresa(); if(!esc0) return mudou;
+  const {it, an, melhorou} = esc0, msg = frasePC(it, an, melhorou);
+  const cap = capacidade(), niv = {};
+  for(const x of itensPC()) if(x.preco>0) niv[x.id] = analisePC(x, cap).nivel;
+  S.cfg.pcNivel = niv; S.cfg.pcVisto = Object.assign({}, S.cfg.pcVisto||{}, {[it.id]: hoje}); S.cfg.pcDia = hoje; await salvarCfg();
+  await addAuto({id:"pc-"+hoje, bot:"poderdecompra", data:hoje, ts:Date.now(), itemId:it.id, item:{id:it.id, nome:it.nome, img:it.img||"", preco:it.preco, cat:it.cat, fonte:it.fonte||""},
+    nivel:an.nivel, melhorou, msg, resumo: msg.replace(/<[^>]+>/g,""), imp: melhorou && ehDesejo(it.id)});
+  return true;
+}
+
+/* slides do post / story */
+function slidesPoder(a){
+  const it = itemPC(a.itemId) || a.item, an = analisePC(it), nv = NIVEL_PC[an.nivel], reac = (S.cfg.pcReacao||{})[it.id];
+  const s1 = '<div class="slide pc-slide">'+(it.img?'<img class="pc-foto" src="'+esc(it.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'<div class="pc-foto pc-semfoto">'+I.gem+'</div>')
+    + '<div class="pc-ov"><span class="pc-badge" style="--nc:'+nv.cor+'">'+nv.ico+' '+nv.t+(a.melhorou?' · novo nível':'')+'</span>'
+    + '<b class="pc-nome">'+esc(it.nome)+'</b><span class="pc-preco num">'+money(it.preco)+'</span>'
+    + '<span class="pc-msg">'+esc(frasePC(it, an, !!a.melhorou && a.nivel===an.nivel))+'</span>'
+    + '<div class="pc-reac"><button class="btn '+(reac===1?'pri':'')+'" data-a="pc-reagir" data-id="'+esc(it.id)+'" data-v="1">❤️ Quero</button><button class="btn" data-a="pc-reagir" data-id="'+esc(it.id)+'" data-v="-1">👎 Não curto</button><button class="btn" data-a="pc-item" data-id="'+esc(it.id)+'">Detalhes</button></div></div></div>';
+  const s2 = sl("#2A2108", '<span class="lbl">Como fica no seu bolso</span>' + blocoAnalise(it, an) + '<div><button class="btn" data-a="pc-vitrine">Abrir a vitrine</button></div>');
+  return [s1, s2];
+}
+function blocoAnalise(it, an){
+  const cap = capacidade(), ok = b => b ? '<b style="color:var(--ok)">sim</b>' : '<b style="color:#FF8A96">não</b>';
+  let h = '<div class="kv"><span>À vista sem mexer em nada</span>'+ok(it.preco<=cap.livre)+'<span>À vista usando investimentos</span>'+ok(it.preco<=cap.total)+'</div>';
+  h += '<span class="muted">Seu livre hoje: '+money(cap.livre)+' · investimentos (sem a reserva): '+money(cap.invest)+' · ritmo de sobra: ~'+money(cap.ritmo)+'/mês</span>';
+  if(an.nivel<3) h += '<div class="kv"><span>À vista no seu ritmo</span><b>'+(an.quando?mesAno(an.quando)+' ('+an.meses+' '+(an.meses===1?'mês':'meses')+')':'sem ritmo de sobra ainda')+'</b></div>'
+    + '<div class="bar" style="height:8px"><i style="width:'+(an.prog*100).toFixed(1)+'%;background:#F2C14E"></i></div>';
+  h += '<div class="kv"><span>Parcelado'+(an.ent?' (entrada de '+money(an.ent)+')':'')+'</span><b>'+an.n+'× de '+money(an.parc)+(an.juros?' · '+(an.juros*100).toFixed(2).replace(".",",")+'% a.m.':' sem juros')+'</b>'
+    + (an.juros?'<span>Total pago</span><b>'+money(an.total)+'</b>':'')+'<span>Cabe no seu mês?</span>'+ok(an.cabeParc)+'</div>';
+  if(an.cv) h += '<div class="kv"><span>Custo real por mês</span><b>'+money(an.custoMes)+'</b><span style="padding-left:10px">parcela</span><b>'+money(an.parc)+'</b><span style="padding-left:10px">IPVA + seguro</span><b>'+money(an.cv.ipva+an.cv.seguro)+'</b><span style="padding-left:10px">combustível + manutenção</span><b>'+money(an.cv.comb+an.cv.manut)+'</b></div>';
+  h += '<span class="muted">'+esc(it.fonte||"")+(it.ref?'. Valor aproximado: confira no link.':'')+(an.cv?' Custos do veículo estimados.':'')+'</span>';
+  return h;
+}
+
+/* telas */
+function cartaoPC(it, cap){
+  const an = analisePC(it, cap), nv = NIVEL_PC[an.nivel];
+  return '<button class="pc-card" data-a="pc-item" data-id="'+esc(it.id)+'">'+(it.img?'<img src="'+esc(it.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'<span class="pc-ph">'+I.gem+'</span>')
+    + '<span class="pc-tag" style="--nc:'+nv.cor+'">'+nv.ico+' '+(an.nivel===1&&an.quando?mesAno(an.quando):nv.t)+'</span>'
+    + '<span class="pc-info"><b>'+esc(it.nome)+'</b><small class="num">'+money(it.preco)+'</small></span>'
+    + (ehDesejo(it.id)&&an.nivel<3?'<span class="pc-prog"><i style="width:'+(an.prog*100).toFixed(1)+'%"></i></span>':'')+'</button>';
+}
+function viewVitrine(){
+  const cap = capacidade(), filt = S.pcFiltro || "tudo";
+  let h = topSimple("Poder de compra", S.voltarVit||"home");
+  h += '<div class="pc-cap"><span class="lbl">Seu poder de compra hoje</span><span class="big num">'+money(cap.total)+'</span>'
+    + '<span class="muted">livre para gastar '+money(cap.livre)+' + investimentos '+money(cap.invest)+'. A reserva fica de fora. Ritmo de sobra: ~'+money(cap.ritmo)+'/mês.</span>'
+    + '<div class="two"><button class="btn pri" data-a="pc-sonho">'+I.plus+'Sonho</button><button class="btn" data-a="pc-cidade">📍 '+esc(cidadePC())+'</button></div></div>';
+  if(S.pcCidade){
+    const cs = ((S.vit&&S.vit.cidades)||[]).filter(c=>S.vit.m2 && S.vit.m2[c.nome]);
+    h += '<div class="field"><label for="pc-cid">Sua cidade (preço do m² para casa e apê)</label><select id="pc-cid" class="inp">'+cs.map(c=>'<option '+(c.nome===cidadePC()?'selected':'')+'>'+esc(c.nome)+'</option>').join("")+'</select><span class="help">Cidades com índice FipeZap disponível.</span></div>';
+  }
+  if(!S.vit) h += '<div class="notice">Ainda não encontrei a vitrine. Suba o robo_vitrine.py (veja o LEIA-ME) e rode o robô uma vez.</div>';
+  const todos = itensPC().filter(it=>it.preco>0 && (S.cfg.pcReacao||{})[it.id]!==-1);
+  const des = todos.filter(it=>ehDesejo(it.id));
+  if(des.length) h += '<div class="sec">Sua lista de desejos</div><div class="pc-grid">'+des.map(it=>cartaoPC(it,cap)).join("")+'</div>';
+  const cats = ["tudo"].concat(Object.keys(CATS_PC).filter(c=>todos.some(it=>it.cat===c)));
+  h += '<div class="sec">Vitrine</div><div class="chips">'+cats.map(c=>'<button class="chip '+(filt===c?'on':'')+'" data-a="pc-filtro" data-v="'+c+'">'+(c==="tudo"?"Tudo":CATS_PC[c])+'</button>').join("")+'</div>';
+  const lista = todos.filter(it=>filt==="tudo"||it.cat===filt).map(it=>({it, n:analisePC(it,cap).nivel})).sort((x,y)=>y.n-x.n || x.it.preco-y.it.preco);
+  h += lista.length ? '<div class="pc-grid">'+lista.map(x=>cartaoPC(x.it,cap)).join("")+'</div>' : '<div class="empty"><strong>Nada aqui</strong>Tente outra categoria.</div>';
+  const ocultos = itensPC().filter(it=>(S.cfg.pcReacao||{})[it.id]===-1).length;
+  if(ocultos) h += '<p class="foot">'+ocultos+' item(ns) que você marcou como "não curto" não aparecem. <button class="lnk" data-a="pc-limpar">mostrar de novo</button></p>';
+  return h;
+}
+function viewItemPC(){
+  const it = itemPC(S.pcItem); if(!it) return topSimple("Item","vitrine")+'<div class="empty"><strong>Item não encontrado</strong></div>';
+  const an = analisePC(it), nv = NIVEL_PC[an.nivel], reac = (S.cfg.pcReacao||{})[it.id];
+  let h = topSimple(CATS_PC[it.cat]||"Item", "vitrine");
+  h += '<div class="pc-hero">'+(it.img?'<img src="'+esc(it.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'<div class="pc-ov"><span class="pc-badge" style="--nc:'+nv.cor+'">'+nv.ico+' '+nv.t+'</span><b class="pc-nome">'+esc(it.nome)+'</b><span class="pc-preco num">'+money(it.preco)+'</span></div></div>';
+  h += '<div class="ler"><p class="ler-p" style="font-weight:600">'+esc(frasePC(it, an, false))+'</p>'+(it.detalhe?'<p class="muted" style="margin:-6px 0 12px">'+esc(it.detalhe)+'</p>':'')
+    + '<div class="pc-blk">'+blocoAnalise(it, an)+'</div>'
+    + '<div class="pc-reac" style="margin:14px 0"><button class="btn '+(reac===1||ehDesejo(it.id)?'pri':'')+'" data-a="pc-reagir" data-id="'+esc(it.id)+'" data-v="1">'+(ehDesejo(it.id)?'❤️ Na lista de desejos':'❤️ Quero')+'</button><button class="btn" data-a="pc-reagir" data-id="'+esc(it.id)+'" data-v="-1">👎 Não curto</button></div>'
+    + (it.links||[]).map(([t,u])=>'<a class="btn" style="width:100%;margin-top:8px" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t)+' ↗</a>').join("")
+    + (it.sonho?'<button class="btn danger" style="width:100%;margin-top:14px" data-a="pc-apagar" data-id="'+esc(it.id)+'">Apagar este sonho</button>':'')
+    + '</div>';
+  return h;
+}
+
+/* + Sonho: carro e moto pela FIPE; o resto pelo nome; foto automática */
+const fipeGet = path => comTempo("https://parallelum.com.br/fipe/api/v1/"+path, 12000);
+const reaisTxt = t => Math.round(parseFloat(String(t).replace(/[^\d,]/g,"").replace(",","."))*100);
+async function buscarFotos(termo){
+  try{
+    const q = new URLSearchParams({origin:"*", action:"query", generator:"search", gsrsearch:"filetype:bitmap "+termo, gsrnamespace:"6", gsrlimit:"10", prop:"imageinfo", iiprop:"url|size", iiurlwidth:"700", format:"json"});
+    const j = await comTempo("https://commons.wikimedia.org/w/api.php?"+q, 12000);
+    return Object.values((j.query||{}).pages||{}).sort((a,b)=>(a.index||0)-(b.index||0)).map(p=>(p.imageinfo||[{}])[0]).filter(ii=>ii.thumburl && (ii.width||0)>=500).map(ii=>ii.thumburl).slice(0,6);
+  }catch(_){ return []; }
+}
+CARROSSEIS.poderdecompra = slidesPoder;
+function viewSonho(){
+  const f = S.pcForm || (S.pcForm = {cat:"carro"});
+  let h = topSimple("Novo sonho", "vitrine");
+  h += '<div class="field" style="padding-top:0"><span class="help">Escolha o que você quer. Carro e moto vêm com preço da Tabela FIPE; o resto você só dá o nome e confirma o preço.</span></div>';
+  h += '<div class="chips">'+[["carro","🚗 Carro"],["moto","🏍️ Moto"],["eletronico","📱 Eletrônico"],["eletrodomestico","🏠 Casa e cozinha"],["viagem","✈️ Viagem"],["experiencia","🎟️ Experiência"],["outro","✨ Outro"]]
+    .map(([k,t])=>'<button class="chip '+(f.cat===k?'on':'')+'" data-a="pc-fcat" data-v="'+k+'">'+t+'</button>').join("")+'</div>';
+  const veic = f.cat==="carro"||f.cat==="moto";
+  if(veic){
+    const sel = (id, lbl, lista, val, vazio) => '<div class="field"><label for="'+id+'">'+lbl+'</label><select id="'+id+'" class="inp" '+(lista?'':'disabled')+'><option value="">'+(lista?vazio:'Carregando…')+'</option>'+(lista||[]).map(o=>'<option value="'+esc(o.codigo)+'" '+(String(o.codigo)===String(val)?'selected':'')+'>'+esc(o.nome)+'</option>').join("")+'</select></div>';
+    if(f.erro) h += '<div class="notice">'+esc(f.erro)+'</div>';
+    h += sel("pc-marca","Marca", f.marcas, f.marca, "Escolha a marca");
+    if(f.marca) h += sel("pc-modelo","Modelo", f.modelos, f.modelo, "Escolha o modelo");
+    if(f.modelo) h += sel("pc-ano","Ano", f.anos, f.ano, "Escolha o ano");
+    if(f.ano && f.preco) h += '<div class="field"><span class="help">Tabela FIPE · '+esc(f.mes||"")+'</span><b class="num" style="font-size:24px">'+money(f.preco)+'</b></div>';
+  } else {
+    h += '<div class="field"><label for="pc-nome">O que é?</label><input id="pc-nome" class="inp" placeholder="'+(f.cat==="viagem"?"Ex.: Chile · 7 dias":f.cat==="experiencia"?"Ex.: Show do Coldplay":"Ex.: iPhone 16 Pro")+'" value="'+esc(f.nome||"")+'"></div>';
+    h += '<div class="field"><label for="pc-preco">Preço aproximado</label>'+'<input id="pc-preco" class="inp num money" data-scope="pc" data-k="preco" inputmode="numeric" value="'+money(f.preco||0)+'">'+(f.sug?'<span class="help">Sugestão da vitrine: '+money(f.sug)+' · <button class="lnk" data-a="pc-usar-sug">usar</button></span>':'<span class="help">Quando ligarmos o Mercado Livre, este preço vem sozinho.</span>')+'</div>';
+  }
+  if(f.fotos && f.fotos.length) h += '<div class="field"><label>Foto</label><div class="pc-fotos">'+f.fotos.map(u=>'<button class="'+(f.img===u?'on':'')+'" data-a="pc-foto" data-u="'+esc(u)+'"><img src="'+esc(u)+'" alt="" referrerpolicy="no-referrer"></button>').join("")+'</div></div>';
+  else if(f.buscandoFoto) h += '<div class="field"><span class="help">Procurando fotos…</span></div>';
+  const pronto = veic ? (f.ano && f.preco) : ((f.nome||"").trim() && f.preco>0);
+  h += '<div class="field"><button class="btn pri" data-a="pc-salvar">Salvar sonho</button></div>';
+  return h;
+}
+async function pcCarregarLista(){
+  const f = S.pcForm, tipo = f.cat==="moto"?"motos":"carros"; f.erro = "";
+  try{
+    if(!f.marcas){ f.marcas = await fipeGet(tipo+"/marcas"); }
+    if(f.marca && !f.modelos){ f.modelos = (await fipeGet(tipo+"/marcas/"+f.marca+"/modelos")).modelos; }
+    if(f.modelo && !f.anos){ f.anos = await fipeGet(tipo+"/marcas/"+f.marca+"/modelos/"+f.modelo+"/anos"); }
+    if(f.ano && !f.preco){ const v = await fipeGet(tipo+"/marcas/"+f.marca+"/modelos/"+f.modelo+"/anos/"+f.ano); f.preco = reaisTxt(v.Valor); f.mes = (v.MesReferencia||"").trim(); f.nomeFipe = v.Marca+" "+v.Modelo; f.anoNome = String(v.AnoModelo);
+      pcFotos(((f.marcas||[]).find(m=>String(m.codigo)===String(f.marca))||{}).nome+" "+(((f.modelos||[]).find(m=>String(m.codigo)===String(f.modelo))||{}).nome||"").split(" ").slice(0,2).join(" ")); }
+  }catch(e){ f.erro = "Não consegui falar com a Tabela FIPE agora ("+(e.message||e)+"). Tente de novo em instantes."; }
+  if(S.view==="sonho") render();
+}
+async function pcFotos(termo){
+  const f = S.pcForm; if(!f || !termo.trim()) return;
+  f.buscandoFoto = true; f.termoFoto = termo; if(S.view==="sonho") render();
+  const fs = await buscarFotos(termo);
+  if(S.pcForm!==f || f.termoFoto!==termo) return;
+  f.buscandoFoto = false; f.fotos = fs; if(!f.img || !fs.includes(f.img)) f.img = fs[0] || ""; if(S.view==="sonho") render();
+}
+async function pcSalvarSonho(){
+  const f = S.pcForm, veic = f.cat==="carro"||f.cat==="moto";
+  const id = "s-"+newId();
+  const s = {id, cat:f.cat, preco:f.preco, img:f.img||"", criado:Date.now()};
+  if(veic){
+    const mk = (f.marcas||[]).find(m=>String(m.codigo)===String(f.marca))||{}, md = (f.modelos||[]).find(m=>String(m.codigo)===String(f.modelo))||{};
+    s.nome = (mk.nome||"").replace(/^(GM|VW) - /,"")+" "+(md.nome||"").split(" ").slice(0,3).join(" ")+" "+(f.anoNome||"").replace(/^32000$/,"0 km");
+    s.detalhe = f.nomeFipe; s.fonte = "Tabela FIPE · "+(f.mes||""); s.precoTs = Date.now();
+    s.fipe = {tipo: f.cat==="moto"?"motos":"carros", marca:f.marca, modelo:f.modelo, ano:f.ano};
+    s.links = [["Ver anúncios na OLX", "https://www.olx.com.br/autos-e-pecas?q="+encodeURIComponent(s.nome)]];
+  } else {
+    s.nome = f.nome.trim(); s.fonte = "preço informado por você"; s.ref = true;
+    s.links = f.cat==="viagem" ? [["Pesquisar passagens","https://www.google.com/travel/flights?q="+encodeURIComponent("voos de São Paulo para "+s.nome)]] : [["Ver no Mercado Livre","https://lista.mercadolivre.com.br/"+encodeURIComponent(s.nome.toLowerCase().replace(/\s+/g,"-"))]];
+  }
+  S.cfg.sonhos = (S.cfg.sonhos||[]).concat([s]);
+  S.cfg.desejos = Object.assign({}, S.cfg.desejos||{}, {[id]:{desde:today()}});
+  await salvarCfg(); S.pcForm = null; S.pcItem = id; S.view = "pcitem"; render(); window.scrollTo(0,0); toast("Sonho salvo na sua lista de desejos");
 }
 
 /* ---------- stories: personalidades (posts das últimas 24h) e robôs ---------- */
@@ -3314,6 +3607,23 @@ document.addEventListener("click", e=>{
     case "ler": if(S.cont && Date.now()-(S.cont._chk||0) > 5*60e3) carregarConteudo(true).then(m=>{ if(m && !S.story) render(); });
       if(S.view!=="ler") S.voltarLer = S.view; S.ler=b.dataset.id; S.view="ler"; render(); window.scrollTo(0,0); break;
     case "mais-feed": S.feedN=(S.feedN||25)+25; render(); break;
+    case "pc-vitrine": if(!["vitrine","pcitem","sonho"].includes(S.view)) S.voltarVit = S.view==="bot"?"bot":(S.view==="botpost"?"home":S.view); if(S.story) fecharStory(); S.view="vitrine"; render(); window.scrollTo(0,0); break;
+    case "pc-item": if(S.story) fecharStory(); if(!["vitrine","pcitem","sonho"].includes(S.view)) S.voltarVit="home"; S.pcItem=b.dataset.id; S.view="pcitem"; render(); window.scrollTo(0,0); break;
+    case "pc-filtro": S.pcFiltro=b.dataset.v; render(); break;
+    case "pc-cidade": S.pcCidade=!S.pcCidade; render(); break;
+    case "pc-limpar": { const r=Object.assign({},S.cfg.pcReacao||{}); for(const k of Object.keys(r)) if(r[k]===-1) delete r[k]; S.cfg.pcReacao=r; salvarCfg(); render(); break; }
+    case "pc-reagir": { const id=b.dataset.id, v=Number(b.dataset.v), r=Object.assign({},S.cfg.pcReacao||{}), d=Object.assign({},S.cfg.desejos||{});
+      if(v===1){ if(d[id]){ delete d[id]; delete r[id]; toast("Saiu da lista de desejos"); } else { d[id]={desde:today()}; r[id]=1; toast("❤️ Na sua lista de desejos"); } }
+      else { r[id]=-1; delete d[id]; toast("Beleza, não mostro mais isso"); }
+      S.cfg.pcReacao=r; S.cfg.desejos=d; salvarCfg(); if(S.story) renderStory(); else render(); break; }
+    case "pc-apagar": S.cfg.sonhos=(S.cfg.sonhos||[]).filter(x=>x.id!==b.dataset.id); { const d=Object.assign({},S.cfg.desejos||{}); delete d[b.dataset.id]; S.cfg.desejos=d; } salvarCfg(); S.view="vitrine"; render(); toast("Sonho apagado"); break;
+    case "pc-sonho": S.pcForm={cat:"carro"}; S.view="sonho"; render(); window.scrollTo(0,0); pcCarregarLista(); break;
+    case "pc-fcat": { const c=b.dataset.v; S.pcForm={cat:c}; render(); if(c==="carro"||c==="moto") pcCarregarLista(); break; }
+    case "pc-foto": S.pcForm.img=b.dataset.u; render(); break;
+    case "pc-usar-sug": S.pcForm.preco=S.pcForm.sug; render(); break;
+    case "pc-salvar": { const f=S.pcForm, veic=f.cat==="carro"||f.cat==="moto";
+      if(veic ? !(f.ano&&f.preco) : !((f.nome||"").trim() && f.preco>0)){ toast(veic?"Escolha marca, modelo e ano":"Dê um nome e um preço"); break; }
+      pcSalvarSonho(); break; }
     case "story-abrir": abrirStory(b.dataset.k); break;
     case "story-fechar": fecharStory(); break;
     case "story-perfil": { const pid=b.dataset.p; fecharStory(); S.perfil=pid; S.view="perfil"; render(); window.scrollTo(0,0); break; }
@@ -3429,6 +3739,7 @@ document.addEventListener("input", e=>{
     if(scope==="lform" && S.lform) S.lform.valor=cents;
     if(scope==="wz" && S.setup && S.setup.form) S.setup.form[k]=cents;
     if(scope==="inv" && S.invForm) S.invForm[k]=cents;
+    if(scope==="pc" && S.pcForm) S.pcForm[k]=cents;
     if(scope==="saldo" && S.setup) S.setup.saldos[k]=cents;
     if(scope==="plano"){ PL()[k]=cents; clearTimeout(S.tPl); S.tPl=setTimeout(salvarCfg,400); }
     if(scope==="form" && S.form){ S.form.valor=cents; S.form.okNeg=false; const hn=document.getElementById("hint-num"); const ref=S.form.tipo==="transfer"?S.form.de:S.form.conta; if(hn) hn.textContent=money(saldo(ref)-cents); }
@@ -3438,6 +3749,9 @@ document.addEventListener("input", e=>{
   }
   if(t.id==="busca"){ S.busca=t.value; render(); return; }
   if(t.id==="busca-x"){ S.buscaX=t.value; render(); return; }
+  if(t.id==="pc-nome" && S.pcForm){ const f=S.pcForm; f.nome=t.value; clearTimeout(S.tPc); S.tPc=setTimeout(()=>{
+      const nn=f.nome.toLowerCase(), ref=((S.vit&&S.vit.itens)||[]).find(x=>x.ref && x.nome.toLowerCase().split(/[^a-z0-9à-ú]+/).filter(w=>w.length>3).some(w=>nn.includes(w)));
+      f.sug = ref ? ref.preco : 0; pcFotos(f.nome); }, 700); return; }
   if(t.id==="crop-z" && S.crop){ S.crop.zoom=Number(t.value); desenharCrop(); return; }
   if(S.invForm){ const f=S.invForm;
     if(t.id==="i-nome") f.nome=t.value; if(t.id==="i-banco") f.banco=t.value; if(t.id==="i-pct") f.pct=t.value; if(t.id==="i-ticker"){ f.ticker=t.value; clearTimeout(S.tCot); S.tCot=setTimeout(()=>cotacaoAgora(f), 500); } if(t.id==="i-qtd") f.qtd=t.value; }
@@ -3459,6 +3773,12 @@ document.addEventListener("change", e=>{
     if(t.id==="b3-arq" && t.files && t.files[0]){ const file=t.files[0]; f.arquivo=file.name; f.lendo=true; f.err=""; f.preview=null; renderInv();
       lerB3(file).then(r=>{ f.lendo=false; f.preview=r; renderInv(); }).catch(e=>{ f.lendo=false; f.err=String(e.message||e); renderInv(); }); return; }
   }
+  if(S.pcForm && (t.id==="pc-marca"||t.id==="pc-modelo"||t.id==="pc-ano")){ const f=S.pcForm;
+    if(t.id==="pc-marca"){ f.marca=t.value; f.modelo=f.ano=""; f.modelos=f.anos=null; f.preco=0; }
+    if(t.id==="pc-modelo"){ f.modelo=t.value; f.ano=""; f.anos=null; f.preco=0; }
+    if(t.id==="pc-ano"){ f.ano=t.value; f.preco=0; }
+    render(); pcCarregarLista(); return; }
+  if(t.id==="pc-cid"){ S.cfg.cidade=t.value; S.pcCidade=false; salvarCfg(); render(); return; }
   if(t.id==="aj-token"){ S.cfg.brapiToken=t.value.trim(); S.cfg.cotTs=0; salvarCfg(); toast(S.cfg.brapiToken?"Token salvo":"Token removido"); return; }
   if(t.id==="aj-cdi"){ const v=parseFloat(String(t.value).replace(",",".")); S.cfg.cdiManual = v>0 ? v : 0; salvarCfg(); render(); toast(v>0?"CDI manual: "+v+"%":"Usando o CDI do Banco Central"); return; }
   if(S.setup && S.setup.form){ const f=S.setup.form;
@@ -3544,6 +3864,9 @@ render();
   S.ready=true; render();
   rodarRobos();
   carregarConteudo().then(m=>{ if(m) render(); });
+  /* o @poderdecompra chega já seguido (uma vez); dá para deixar de seguir no perfil dele */
+  if(!S.cfg.pcAuto){ S.cfg.pcAuto = true; S.cfg.follow = Object.assign({}, S.cfg.follow||{}); if(!S.cfg.follow.poderdecompra) S.cfg.follow.poderdecompra = {seg:true, notif:"todas", desde:Date.now()}; salvarCfg(); }
+  carregarVitrine().then(m=>{ if(m){ render(); rodarRobos(); } });
   mercadoAoVivo().then(m=>{ if(m && S.view==="home") render(); });
 })();
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ rodarRobos(); carregarConteudo().then(m=>{ if(m && !S.story) render(); }); mercadoAoVivo().then(m=>{ if(m && S.view==="home" && !S.story) render(); }); } });
