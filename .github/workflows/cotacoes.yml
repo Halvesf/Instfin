@@ -1,16 +1,17 @@
 # Robô de cotações do Pablo Finanças.
-# Roda sozinho no GitHub de hora em hora nos dias úteis, busca cotação (B3), proventos (Fundamentus) e CDI (Banco Central)
+# Roda sozinho no GitHub duas vezes por hora, das 7h às 23h, busca cotação (B3), proventos (Fundamentus) e CDI (Banco Central)
 # e salva o arquivo cotacoes.json ao lado do index.html. O app lê esse arquivo.
 # Para incluir um ativo novo, edite o tickers.txt (um código por linha).
 # Notícias, vídeos e mercado: o robo_conteudo.py lê o fontes.txt e salva o conteudo.json.
+# Vitrine do @poderdecompra: o robo_vitrine.py salva o vitrine.json (FIPE, FipeZap, fotos), uma vez por dia.
 name: Cotações
 
 on:
   schedule:
-    - cron: "7 0-2,10-23 * * *" # de hora em hora, das 7h às 23h de Brasília, todo dia
+    - cron: "23,53 0-2,10-23 * * *" # duas vezes por hora, das 7h às 23h de Brasília, todo dia (fora do minuto 0, que é o mais disputado)
   workflow_dispatch:            # botão "Run workflow" para rodar na hora
   push:
-    paths: ["**/tickers.txt", "**/fontes.txt", "**/robo_conteudo.py"]   # roda sozinho quando você muda as listas
+    paths: ["**/tickers.txt", "**/fontes.txt", "**/robo_conteudo.py", "**/robo_vitrine.py"]   # roda sozinho quando você muda as listas
 
 permissions:
   contents: write
@@ -146,6 +147,13 @@ jobs:
         run: |
           arq=$(find . -name robo_conteudo.py -not -path "./.git/*" | head -1)
           if [ -n "$arq" ]; then python3 "$arq"; else echo "robo_conteudo.py não encontrado"; fi
+
+      - name: Montar a vitrine do poder de compra (uma vez por dia)
+        continue-on-error: true
+        run: |
+          python3 -m pip install --quiet --break-system-packages pypdf 2>/dev/null || python3 -m pip install --quiet pypdf || true
+          arq=$(find . -name robo_vitrine.py -not -path "./.git/*" | head -1)
+          if [ -n "$arq" ]; then python3 "$arq"; else echo "robo_vitrine.py não encontrado"; fi
 
       - name: Salvar no repositório
         run: |
