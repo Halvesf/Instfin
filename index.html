@@ -81,6 +81,17 @@ button,label[for]{cursor:pointer}
 .c-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .c-play{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(5,6,10,.7);color:#fff;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}.c-play svg{width:30px;height:30px;margin-left:3px}
 .c-short{position:absolute;left:10px;top:10px;padding:3px 8px;border-radius:999px;background:#FF3B55;color:#fff;font-size:11px;font-weight:700}
+.c-link{width:100%;border:0;padding:0;background:none;text-align:left;color:inherit;font:inherit}
+.ler{padding:14px 16px 8px}
+.ler-fonte{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.ler-fonte .who{display:flex;align-items:center;gap:10px}
+.ler-fonte .meta{display:flex;flex-direction:column;text-align:left}.ler-fonte .meta .t{font-size:14px;font-weight:600}.ler-fonte .meta .s{font-size:12px;color:var(--fg-3)}
+.ler-tit{font-size:22px;line-height:1.3;font-weight:700;margin:0 0 14px;letter-spacing:-.3px}
+.ler-p{font-size:16.5px;line-height:1.65;color:var(--fg);margin:0 0 14px}
+.ler-nota{font-size:12.5px;color:var(--fg-3);margin:4px 0 10px}
+.c-minis{display:flex;flex-direction:column;gap:2px;padding:0 8px 24px}
+.c-mini{display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;align-items:center;padding:8px;border:0;background:none;color:inherit;text-align:left;border-radius:12px}
+.c-mini img,.c-mini-ph{width:112px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--surface)}
+.c-mini b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13.5px;line-height:1.35;font-weight:600}.c-mini small{display:block;font-size:11.5px;color:var(--fg-3);margin-top:4px}
 .sugf{padding:14px 0 18px;border-bottom:1px solid var(--line,#1B1E26)}
 .sugc{flex:0 0 132px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:16px;background:var(--surface);text-align:center}
 .sugc b{font-size:13px}.sugc small{font-size:11px;color:var(--fg-3)}.sugc .btn{width:100%}
@@ -2808,7 +2819,7 @@ function personalidadesPadrao(oldCfg){
    RENDER
    ====================================================================== */
 function renderNav(){
-  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost"||S.view==="fonte") ? "explorar" : S.view==="ajustes" ? "perfil" : S.view;
+  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost"||S.view==="fonte") ? "explorar" : S.view==="ler" ? (S.voltarLer==="fonte"?"explorar":S.voltarLer||"home") : S.view==="ajustes" ? "perfil" : S.view;
   const it = (k,icon,label)=>'<button class="ibtn '+(v===k?"on":"")+'" data-a="go" data-v="'+k+'" aria-label="'+label+'" '+(v===k?'aria-current="page"':'')+'>'+icon+'</button>';
   document.getElementById("nav").innerHTML = it("home",I.home,"Início")+it("explorar",I.search,"Explorar")
     +'<button class="plus" data-a="nova" aria-label="Nova movimentação">'+I.plus+'</button>'
@@ -2819,7 +2830,7 @@ function render(){
   const ae = document.activeElement;
   const focusId = ae && ae.id && app.contains(ae) ? ae.id : null;
   const rolagem = {}; app.querySelectorAll(".slides[data-id]").forEach(el=>{ if(el.scrollLeft) rolagem[el.dataset.id]=el.scrollLeft; });
-  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="fonte"?viewFonte():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
+  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="fonte"?viewFonte():S.view==="ler"?viewLer():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
   renderNav();
   app.querySelectorAll(".slides[data-id]").forEach(el=>{ const x=rolagem[el.dataset.id]; if(x){ el.style.scrollBehavior="auto"; el.scrollLeft=x; } atualizarContador(el); });
   hidratarFotos(app);
@@ -3059,13 +3070,13 @@ function cardConteudo(it){
     + (segueFonte(it.fonte)?'':'<button class="btn seg mini" data-a="seguir-fonte" data-f="'+esc(it.fonte)+'">Seguir</button>')+'</div>';
   if(meus.length) h += '<div class="c-tag">'+I.alert+'<span>Fala do seu '+meus.map(esc).join(", ")+'</span></div>';
   if(it.tipo==="video"){
-    if(S.tocando===it.id) h += '<div class="c-video'+(it.short?" short":"")+'"><iframe src="https://www.youtube-nocookie.com/embed/'+esc(it.videoId)+'?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="'+esc(it.titulo)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>';
-    else h += '<button class="c-video c-thumb'+(it.short?" short":"")+'" data-a="tocar" data-id="'+esc(it.id)+'" aria-label="Assistir '+esc(it.titulo)+'"><img src="'+esc(it.img)+'" alt="" loading="lazy"><span class="c-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span>'+(it.short?'<span class="c-short">Shorts</span>':'')+'</button>';
+    if(false) h += '<div class="c-video'+(it.short?" short":"")+'"><iframe src="https://www.youtube-nocookie.com/embed/'+esc(it.videoId)+'?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="'+esc(it.titulo)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>';
+    else h += '<button class="c-video c-thumb'+(it.short?" short":"")+'" data-a="ler" data-id="'+esc(it.id)+'" aria-label="Assistir '+esc(it.titulo)+'"><img src="'+esc(it.img)+'" alt="" loading="lazy"><span class="c-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span>'+(it.short?'<span class="c-short">Shorts</span>':'')+'</button>';
     h += '<div class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'</div>';
   } else {
-    h += '<a class="c-link" href="'+esc(it.link)+'" target="_blank" rel="noopener noreferrer">'
+    h += '<button class="c-link" data-a="ler" data-id="'+esc(it.id)+'">'
       + (it.img ? '<span class="c-img"><img src="'+esc(it.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'sem\');this.remove()"></span>' : '<span class="c-img sem"><span>'+esc(f.nome)+'</span></span>')
-      + '<span class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'<span class="c-ler">Ler em '+esc(f.nome)+' ↗</span></span></a>';
+      + '<span class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'<span class="c-ler">'+((it.texto&&it.texto.length)?'Ler aqui · '+Math.max(1,Math.round(it.texto.join(" ").split(/\s+/).length/200))+' min':'Ver resumo')+'</span></span></button>';
   }
   return h + '</article>';
 }
@@ -3095,6 +3106,31 @@ function faixaMercado(){
   if(m.selic) c.push(chip("Selic", m.selic.v, null, v=>String(v).replace(".",",")+"%"));
   else if(S.cfg.cdi) c.push(chip("CDI", S.cfg.cdi.v, null, v=>String(v).replace(".",",")+"%"));
   return c.length ? '<div class="mkt" aria-label="Mercado agora">'+c.join("")+'</div>' : "";
+}
+/* leitura dentro do app: notícia (trecho publicado pelo site) e vídeo (player do YouTube) */
+const itemDe = id => ((S.cont&&S.cont.itens)||[]).find(it=>it.id===id);
+function miniItem(it){
+  return '<button class="c-mini" data-a="ler" data-id="'+esc(it.id)+'">'+(it.img?'<img src="'+esc(it.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'<span class="c-mini-ph"></span>')
+    +'<span><b>'+esc(it.titulo)+'</b><small>'+(it.tipo==="video"&&it.views?milhar(it.views)+' visualizações · ':'')+tempoAtras(it.ts)+'</small></span></button>';
+}
+function viewLer(){
+  const it = itemDe(S.ler); if(!it) return topSimple("Leitura", S.voltarLer||"home")+'<div class="empty"><strong>Este conteúdo saiu da lista</strong>O robô guarda só os mais recentes.</div>';
+  const f = fonteDe(it.fonte) || {nome:"Fonte"}, meus = (it.tickers||[]).filter(t=>meusTickers().includes(t));
+  let h = topSimple(f.nome, S.voltarLer||"home");
+  if(it.tipo==="video") h += '<div class="c-video'+(it.short?" short":"")+'" style="margin-top:0"><iframe src="https://www.youtube-nocookie.com/embed/'+esc(it.videoId)+'?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="'+esc(it.titulo)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>';
+  else if(it.img) h += '<div class="c-img"><img src="'+esc(it.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>';
+  h += '<div class="ler">'
+    + '<div class="ler-fonte"><button class="who linkish" data-a="fonte" data-f="'+esc(it.fonte)+'">'+fonteAv(f)+'<span class="meta"><span class="t">'+esc(f.nome)+'</span><span class="s">'+(it.tipo==="video"?(it.views?milhar(it.views)+" visualizações · ":""):"")+tempoAtras(it.ts)+'</span></span></button>'
+    + '<button class="btn seg mini '+(segueFonte(it.fonte)?"on":"")+'" data-a="seguir-fonte" data-f="'+esc(it.fonte)+'">'+(segueFonte(it.fonte)?"Seguindo":"Seguir")+'</button></div>'
+    + '<h2 class="ler-tit">'+esc(it.titulo)+'</h2>'
+    + (meus.length?'<div class="c-tag" style="margin:0 0 14px">'+I.alert+'<span>Fala do seu '+meus.map(esc).join(", ")+'</span></div>':'');
+  const ps = (it.texto&&it.texto.length) ? it.texto : (it.resumo ? [it.resumo] : []);
+  h += ps.map(p=>'<p class="ler-p">'+esc(p)+'</p>').join("");
+  if(it.tipo!=="video") h += '<p class="ler-nota">'+(it.texto&&it.texto.length?'Trecho publicado por '+esc(f.nome)+'. A matéria completa está no site.':'O site só publicou este resumo. A matéria completa está no site.')+'</p>';
+  h += '<a class="btn" style="width:100%;margin-top:6px" href="'+esc(it.link)+'" target="_blank" rel="noopener noreferrer">'+(it.tipo==="video"?"Abrir no YouTube":"Ler a matéria completa em "+esc(f.nome))+' ↗</a></div>';
+  const mais = ((S.cont&&S.cont.itens)||[]).filter(x=>x.fonte===it.fonte && x.id!==it.id).slice(0,6);
+  if(mais.length) h += '<div class="sec">Mais de '+esc(f.nome)+'</div><div class="c-minis">'+mais.map(miniItem).join("")+'</div>';
+  return h;
 }
 function viewFonte(){
   const f = fonteDe(S.fonte); if(!f) return topSimple("Fonte","explorar")+'<div class="empty"><strong>Fonte não encontrada</strong>Ela pode ter saído do fontes.txt.</div>';
@@ -3272,7 +3308,7 @@ document.addEventListener("click", e=>{
     case "pedir-apagar": S.del=b.dataset.id; S.menu=null; render(); break;
     case "fonte": S.fonte=b.dataset.f; S.view="fonte"; S.tocando=null; render(); window.scrollTo(0,0); break;
     case "seguir-fonte": { const id=b.dataset.f, sim=!segueFonte(id); seguirFonte(id, sim).then(()=>{ render(); toast(sim?"Seguindo "+((fonteDe(id)||{}).nome||""):"Deixou de seguir"); }); break; }
-    case "tocar": S.tocando=b.dataset.id; render(); break;
+    case "ler": if(S.view!=="ler") S.voltarLer = S.view; S.ler=b.dataset.id; S.view="ler"; render(); window.scrollTo(0,0); break;
     case "mais-feed": S.feedN=(S.feedN||25)+25; render(); break;
     case "story-abrir": abrirStory(b.dataset.k); break;
     case "story-fechar": fecharStory(); break;

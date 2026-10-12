@@ -27,6 +27,59 @@ def ts_rss(s):
     except Exception:
         try: return int(dt.datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp() * 1000)
         except Exception: return int(time.time() * 1000)
+def paragrafos(h, maxp=8, maxc=1800):
+    """texto limpo em parágrafos, a partir do HTML do feed ou da página"""
+    h = re.sub(r"(?is)<(script|style|figure|figcaption|aside|nav|form|iframe)[^>]*>.*?</\1>", " ", h or "")
+    ps, total = [], 0
+    for p in re.findall(r"(?is)<p[^>]*>(.*?)</p>", h):
+        t = limpa(p, 1200)
+        if len(t) < 40 or re.search(r"(?i)(leia também|leia mais|assine|newsletter|cookies|whatsapp|siga o |clique aqui)", t): continue
+        ps.append(t); total += len(t)
+        if len(ps) >= maxp or total >= maxc: break
+    return ps
+def tempo_rel(txt):
+    m = re.search(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", txt or "")
+    if not m: return int(time.time() * 1000)
+    seg = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 604800, "month": 2592000, "year": 31536000}[m.group(2)]
+    return int((time.time() - int(m.group(1)) * seg) * 1000)
+def views_txt(txt):
+    m = re.search(r"([\d.,]+)\s*([KMB]?)\s+views", txt or "")
+    if not m: return 0
+    n = float(m.group(1).replace(",", "")) if not m.group(2) else float(m.group(1).replace(",", "."))
+    return int(n * {"": 1, "K": 1e3, "M": 1e6, "B": 1e9}[m.group(2)])
+def videos_da_pagina(url):
+    """lê a aba Vídeos do canal (quando o feed RSS do YouTube falha)"""
+    h = baixar(url + ("&" if "?" in url else "?") + "hl=en&gl=US").decode("utf-8", "ignore")
+    m = re.search(r"var ytInitialData\s*=\s*(\{.*?\});\s*</script>", h, re.S) or re.search(r"ytInitialData\"\]\s*=\s*(\{.*?\});", h, re.S)
+    if not m: raise ValueError("página do canal sem lista de vídeos")
+    dados = json.loads(m.group(1)); out = []
+    def txt(o):
+        if isinstance(o, dict):
+            if "simpleText" in o: return o["simpleText"]
+            if "runs" in o: return "".join(r.get("text", "") for r in o["runs"])
+            if "content" in o: return o["content"]
+        return ""
+    def anda(o):
+        if len(out) >= 12: return
+        if isinstance(o, dict):
+            if "videoRenderer" in o:
+                v = o["videoRenderer"]
+                out.append({"vid": v.get("videoId"), "titulo": txt(v.get("title")), "quando": txt(v.get("publishedTimeText")), "views": txt(v.get("viewCountText")), "desc": txt(v.get("descriptionSnippet"))})
+                return
+            if "lockupViewModel" in o:
+                v = o["lockupViewModel"]
+                if v.get("contentType", "").endswith("VIDEO"):
+                    md = (v.get("metadata") or {}).get("lockupMetadataViewModel") or {}
+                    partes = []
+                    for row in (((md.get("metadata") or {}).get("contentMetadataViewModel") or {}).get("metadataRows") or []):
+                        for p in row.get("metadataParts") or []: partes.append(txt(p.get("text")))
+                    out.append({"vid": v.get("contentId"), "titulo": txt(md.get("title")), "quando": " ".join(partes), "views": " ".join(partes), "desc": ""})
+                return
+            for x in o.values(): anda(x)
+        elif isinstance(o, list):
+            for x in o: anda(x)
+    anda(dados)
+    return [v for v in out if v["vid"]]
 TICK = re.compile(r"\b([A-Z]{4}(?:3|4|11))\b")
 def slug(s): return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
@@ -44,6 +97,7 @@ fontes_old = {f["id"]: f for f in antigo.get("fontes", [])}
 itens_old = {}
 for it in antigo.get("itens", []): itens_old.setdefault(it["fonte"], []).append(it)
 img_cache = {it["link"]: it.get("img", "") for it in antigo.get("itens", []) if it.get("img")}
+texto_cache = {it["link"]: it.get("texto") for it in antigo.get("itens", []) if it.get("texto")}
 
 fontes, itens = [], []
 lista = os.path.join(pasta, "fontes.txt")
@@ -80,13 +134,17 @@ for l in linhas:
                 texto = titulo + " " + limpa(desc_h, 600) + " " + limpa(cont, 1500)
                 tks = sorted(set(TICK.findall(texto)))[:6]
                 novos.append({"id": "n" + hashlib.md5((fid + link).encode()).hexdigest()[:10], "fonte": fid, "tipo": "noticia", "titulo": titulo,
-                              "link": link, "img": img, "ts": ts_rss(it.findtext("pubDate") or ""), "resumo": limpa(desc_h or cont, 220), "tickers": tks})
-            # imagem da página (og:image) para as mais novas sem foto
-            for n in [x for x in novos if not x["img"]][:4]:
+                              "link": link, "img": img, "ts": ts_rss(it.findtext("pubDate") or ""), "resumo": limpa(desc_h or cont, 220), "tickers": tks, "texto": paragrafos(cont) or texto_cache.get(link) or []})
+            # da página: imagem (og:image) e primeiros parágrafos, para as mais novas que vieram sem
+            for n in [x for x in novos if not x["img"] or not x["texto"]][:6]:
                 try:
                     h = baixar(n["link"], timeout=12, tent=1).decode("utf-8", "ignore")
-                    m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', h) or re.search(r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"', h)
-                    if m: n["img"] = html.unescape(m.group(1))
+                    if not n["img"]:
+                        m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', h) or re.search(r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"', h)
+                        if m: n["img"] = html.unescape(m.group(1))
+                    if not n["texto"]:
+                        corpo = re.search(r"(?is)<article[^>]*>(.*?)</article>", h)
+                        n["texto"] = paragrafos(corpo.group(1) if corpo else h, maxp=5, maxc=1000)
                 except Exception: pass
         else:
             cid = end if end.startswith("UC") else (fontes_old.get(fid) or {}).get("cid", "")
@@ -100,8 +158,15 @@ for l in linhas:
                 if m: f["avatar"] = html.unescape(m.group(1))
             if not cid: raise ValueError("não achei o canal")
             f["cid"] = cid; f["site"] = f"https://www.youtube.com/channel/{cid}"
-            raiz = ET.fromstring(baixar(f"https://www.youtube.com/feeds/videos.xml?channel_id={cid}"))
-            for e in raiz.findall("atom:entry", NS)[:10]:
+            try: raiz = ET.fromstring(baixar(f"https://www.youtube.com/feeds/videos.xml?channel_id={cid}", tent=1))
+            except Exception as e_rss:
+                print(nome, "feed do YouTube falhou (", e_rss, "), lendo a página do canal")
+                raiz = None
+                for v in videos_da_pagina(f"https://www.youtube.com/channel/{cid}/videos")[:10]:
+                    novos.append({"id": "v" + v["vid"], "fonte": fid, "tipo": "video", "titulo": limpa(v["titulo"], 200), "link": f"https://www.youtube.com/watch?v={v['vid']}",
+                                  "img": f"https://i.ytimg.com/vi/{v['vid']}/hqdefault.jpg", "videoId": v["vid"], "ts": tempo_rel(v["quando"]), "resumo": limpa(v["desc"], 180),
+                                  "views": views_txt(v["views"]), "short": False, "tickers": sorted(set(TICK.findall(v["titulo"])))[:6]})
+            for e in (raiz.findall("atom:entry", NS)[:10] if raiz is not None else []):
                 vid = e.findtext("yt:videoId", namespaces=NS); titulo = limpa(e.findtext("atom:title", namespaces=NS), 200)
                 grp = e.find("media:group", NS); desc_v = ""; views = 0; thumb = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
                 if grp is not None:
