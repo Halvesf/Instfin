@@ -2,15 +2,15 @@
 # Roda sozinho no GitHub de hora em hora nos dias úteis, busca cotação (B3), proventos (Fundamentus) e CDI (Banco Central)
 # e salva o arquivo cotacoes.json ao lado do index.html. O app lê esse arquivo.
 # Para incluir um ativo novo, edite o tickers.txt (um código por linha).
+# Notícias, vídeos e mercado: o robo_conteudo.py lê o fontes.txt e salva o conteudo.json.
 name: Cotações
 
 on:
   schedule:
-    - cron: "7 13-21 * * 1-5"   # de hora em hora, 10h às 18h de Brasília, seg a sex
-    - cron: "30 23 * * *"       # uma vez à noite, todo dia (proventos e CDI)
+    - cron: "7 0-2,10-23 * * *" # de hora em hora, das 7h às 23h de Brasília, todo dia
   workflow_dispatch:            # botão "Run workflow" para rodar na hora
   push:
-    paths: ["**/tickers.txt"]   # roda sozinho quando você muda a lista
+    paths: ["**/tickers.txt", "**/fontes.txt", "**/robo_conteudo.py"]   # roda sozinho quando você muda as listas
 
 permissions:
   contents: write
@@ -140,6 +140,12 @@ jobs:
           json.dump({"atualizado": agora, "tickers": tickers, "ativos": ativos, "erros": erros, "cdi": cdi},
                     open(saida, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
           PY
+
+      - name: Buscar notícias, vídeos e mercado
+        continue-on-error: true
+        run: |
+          arq=$(find . -name robo_conteudo.py -not -path "./.git/*" | head -1)
+          if [ -n "$arq" ]; then python3 "$arq"; else echo "robo_conteudo.py não encontrado"; fi
 
       - name: Salvar no repositório
         run: |
