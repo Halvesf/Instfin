@@ -1527,17 +1527,51 @@ async function atualizarCDI(forcar){
   await salvarCfg();
   return false;
 }
+/* brapi: tenta o token na URL; se recusar, tenta no cabeçalho (forma nova da documentação) */
+async function brapi(t, extra){
+  const tok = (S.cfg.brapiToken||"").trim(), u = "https://brapi.dev/api/quote/"+encodeURIComponent(t)+(extra?"?"+extra:"");
+  try{ return await comTempo(u+(extra?"&":"?")+"token="+encodeURIComponent(tok), 10000); }
+  catch(e1){
+    if(!/^HTTP (401|403)/.test(e1.message) && !/bloqueado/.test(e1.message)) throw e1;
+    const ac = new AbortController(); const tm=setTimeout(()=>ac.abort(), 10000);
+    try{ const r = await fetch(u,{cache:"no-store",signal:ac.signal,headers:{Authorization:"Bearer "+tok}});
+      if(!r.ok){ let m=""; try{ const j=await r.json(); m=j&&(j.message||""); }catch(_){} throw new Error("HTTP "+r.status+(m?": "+m:"")); }
+      return await r.json(); }
+    catch(e2){ throw /^HTTP/.test(e2.message||"") ? e2 : e1; }
+    finally{ clearTimeout(tm); }
+  }
+}
+function motivoBrapi(m){
+  m = String(m||"");
+  if(/HTTP 401/.test(m)) return "token recusado pela brapi. Copie de novo em brapi.dev/dashboard e cole inteiro";
+  if(/HTTP 403/.test(m)) return "seu plano da brapi não libera esse dado";
+  if(/HTTP 404/.test(m)) return "código não encontrado na brapi";
+  if(/HTTP 429/.test(m)) return "limite de consultas do mês atingido";
+  return m;
+}
+async function cotacaoAgora(f){
+  const t=(f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,""), el=()=>document.getElementById("cot-agora");
+  const put = h => { f.cotHtml=h; const e=el(); if(e) e.innerHTML=h; };
+  if(!/^[A-Z]{4}\d{1,2}[A-Z]?$/.test(t)){ put('Digite o código e eu mostro a cotação de agora.'); return; }
+  if(!(S.cfg.brapiToken||"").trim()){ put('<span style="color:#FF8A96">Sem token da brapi: não consigo buscar a cotação. Cole o token em Ajustes → Investimentos.</span>'); return; }
+  put('Buscando a cotação de '+t+'…');
+  try{ const j=await brapi(t), r=j&&j.results&&j.results[0];
+    if((f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"")!==t) return;
+    if(r && r.regularMarketPrice){ const c=Math.round(r.regularMarketPrice*100); f.cotPreco=c;
+      put('<b style="color:var(--fg)">'+t+' agora: '+money(c)+'</b>'+(r.longName||r.shortName?' · '+esc(r.longName||r.shortName):'')+'<br><button class="btn mini" data-a="inv-usar-cot" style="margin-top:6px">Usar como preço (comprei agora)</button>'); }
+    else put('<span style="color:#FF8A96">'+t+' não encontrado na brapi.</span>');
+  }catch(e){ put('<span style="color:#FF8A96">Não consegui a cotação: '+esc(motivoBrapi(e.message))+'.</span>'); }
+}
 async function testarConexoes(){
   const out = [], tok = (S.cfg.brapiToken||"").trim();
   const ok1 = await atualizarCDI(true).catch(()=>false);
   out.push({nome:"CDI do Banco Central", ok:!!ok1, msg: ok1 ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. ("+S.cfg.cdi.d+")" : (S.cfg.cdiErro||"falhou")+(S.cfg.cdiManual?" · usando o manual de "+S.cfg.cdiManual+"%":" · preencha o CDI manual abaixo")});
   if(!tok){ out.push({nome:"brapi", ok:false, msg:"Nenhum token colado. Crie grátis em brapi.dev/dashboard e cole acima."}); return out; }
   const t = (S.inv.find(a=>a.tipo==="rv")||{}).ticker || "PETR4";
-  const url = "https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?token="+encodeURIComponent(tok);
-  try{ const j = await comTempo(url, 10000); const r=j&&j.results&&j.results[0];
+  try{ const j = await brapi(t); const r=j&&j.results&&j.results[0];
     out.push({nome:"Cotação "+t, ok:!!(r&&r.regularMarketPrice), msg: r&&r.regularMarketPrice ? "R$ "+String(r.regularMarketPrice.toFixed(2)).replace(".",",") : "veio sem preço"}); }
-  catch(e){ const m=String(e.message||e); out.push({nome:"Cotação "+t, ok:false, msg: /401|403/.test(m)?"Token recusado ("+m+"). Confira se colou inteiro, sem espaço.":m}); }
-  try{ const j = await comTempo(url+"&dividends=true", 10000); const r=j&&j.results&&j.results[0]; const n=((r&&r.dividendsData&&r.dividendsData.cashDividends)||[]).length;
+  catch(e){ const m=String(e.message||e); out.push({nome:"Cotação "+t, ok:false, msg: motivoBrapi(m)+" ("+m+")"}); }
+  try{ const j = await brapi(t, "dividends=true"); const r=j&&j.results&&j.results[0]; const n=((r&&r.dividendsData&&r.dividendsData.cashDividends)||[]).length;
     out.push({nome:"Proventos "+t, ok:n>0, msg: n ? n+" pagamentos encontrados" : "a brapi respondeu sem proventos: registre o último manualmente e eu estimo a partir dele"}); }
   catch(e){ out.push({nome:"Proventos "+t, ok:false, msg:"Seu plano da brapi não libera proventos ("+String(e.message||e)+"). A cotação funciona; registre o último provento e eu estimo os próximos."}); }
   await atualizarCotacoes(true);
@@ -1547,14 +1581,13 @@ async function atualizarCotacoes(forcar){
   const tickers = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
   const tok = (S.cfg.brapiToken||"").trim();
   if(!tickers.length || !tok) return {ok:false, motivo: !tok ? "sem token" : "sem ativos"};
-  if(!forcar && Date.now()-(S.cfg.cotTs||0) < 30*60e3) return {ok:true, cache:true};
+  if(!forcar && tickers.every(t=>cot(t)) && Date.now()-(S.cfg.cotTs||0) < 30*60e3) return {ok:true, cache:true};
   const novo = Object.assign({}, S.cfg.cot||{}); let ok=0, erro="";
-  const base = t => "https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?token="+encodeURIComponent(tok);
   for(const t of tickers){
     try{
       let j, semDiv = false;
-      try{ j = await comTempo(base(t)+"&dividends=true", 10000); }
-      catch(e1){ semDiv = true; j = await comTempo(base(t), 10000); }
+      try{ j = await brapi(t, "dividends=true"); }
+      catch(e1){ if(/HTTP 401|bloqueado|tempo/.test(e1.message)) throw e1; semDiv = true; j = await brapi(t); }
       const r = j && j.results && j.results[0];
       if(semDiv) erro = erro || "proventos indisponíveis no seu plano da brapi (só a cotação veio)";
       if(r && r.regularMarketPrice){
@@ -1564,7 +1597,7 @@ async function atualizarCotacoes(forcar){
         if(semDiv && cot(t) && cot(t).divs) novo[t].divs = cot(t).divs;
         ok++;
       } else erro = erro || (t+": não encontrado na brapi");
-    }catch(e){ erro = t+": "+String(e && e.message || e); }
+    }catch(e){ erro = t+": "+motivoBrapi(e && e.message || e); }
   }
   S.cfg.cot = novo; if(ok) S.cfg.cotTs = Date.now(); S.cfg.cotErro = erro; await salvarCfg();
   return {ok: ok>0, n:ok, total:tickers.length, erro};
@@ -1591,7 +1624,7 @@ function viewCarteira(p){
     h += '<div class="sec">FIIs e ações'+(!tok?' <span class="help" style="font-weight:400">· sem cotação automática: cole o token da brapi em Ajustes</span>':'')+'</div>';
     h += rv.map(a=>{ const ps=posicaoRV(a), c=cot(a.ticker), v=valorRV(a), res=v-ps.custo, pp=proventoPrevisto(a,ym), rec=provDoMes(a,ym);
       return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.ticker)+'</b><small>'+ps.cotas+' cotas · PM '+money(ps.pm)+(a.pmEstimado?' (estimado)':'')+'</small></span>'
-        +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')+'</span>'
+        +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b><small style="display:block;font-size:11px;color:var(--fg-3)">'+(c?'cotação '+new Date(c.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):'sem cotação')+'</small>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')+'</span>'
         +'<button class="ibtn" data-a="inv-rv-edit" data-id="'+esc(a.id)+'" aria-label="Editar '+esc(a.ticker)+'">'+I.edit+'</button></div>'
         +'<div class="kv"><span>Valor</span><b class="num">'+money(v)+'</b><span>Resultado</span><b class="num '+(res>=0?"pos":"")+'" style="'+(res<0?"color:#FF8A96":"")+'">'+(res>=0?"+":"")+money(res)+(ps.custo?' ('+(res/ps.custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b>'
         +'<span>Provento de '+MESES[Number(ym.slice(5))-1].slice(0,3)+'</span><b class="num">'+(rec?'<span class="pos">recebido '+money(rec)+'</span>':pp?(pp.estim?'~':'')+money(pp.valor)+' · '+dataBR(pp.data):'—')+'</b></div>'
@@ -1640,7 +1673,7 @@ function renderInv(){
     h += fld("i-valor","Saldo bruto no banco hoje", moneyIn("i-valor","valor",f.valor), at?"Estimativa do app: "+money(valorRF(at,today())):"");
   }
   if(f.modo==="rv-novo"){
-    h += fld("i-ticker","Código (ticker)",'<input id="i-ticker" class="inp" maxlength="8" placeholder="Ex.: MXRF11" style="text-transform:uppercase" value="'+esc(f.ticker||"")+'">');
+    h += fld("i-ticker","Código (ticker)",'<input id="i-ticker" class="inp" maxlength="8" placeholder="Ex.: MXRF11" style="text-transform:uppercase" value="'+esc(f.ticker||"")+'"><span id="cot-agora" class="help">'+(f.cotHtml||'Digite o código e eu mostro a cotação de agora.')+'</span>');
     h += '<div class="two" style="padding:0 16px"><div class="field" style="padding:8px 0"><label for="i-qtd">Cotas</label><input id="i-qtd" class="inp num" type="number" inputmode="numeric" min="1" step="1" value="'+esc(f.qtd||"")+'"></div>'
        + '<div class="field" style="padding:8px 0"><label for="i-preco">Preço médio</label>'+moneyIn("i-preco","preco",f.preco)+'</div></div>';
     h += '<div class="field"><label class="ck-line"><input id="i-mover" type="checkbox" '+(f.mover?"checked":"")+'> Comprei agora: descontar do caixa do '+esc(p?p.curto:"")+'</label><span class="help">Deixe desmarcado para cotas que você já tinha antes do app.</span></div>';
@@ -1835,7 +1868,7 @@ function slidesFII(a){
     +'<span class="chipv '+(varDia>0.05?"up":varDia<-0.05?"down":"flat")+'">'+(varDia>0?"▲ +":varDia<0?"▼ ":"■ ")+varDia.toFixed(2).replace(".",",")+'% hoje</span>'
     +'<div class="kv"><span>Custo (preço médio)</span><b class="num">'+money(custo)+'</b><span>Resultado</span><b class="num" style="color:'+(res>=0?"var(--ok)":"#FF8A96")+'">'+(res>=0?"+":"")+money(res)+(custo?' ('+(res/custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b></div>'
     +'<div class="lst">'+rv.map(x=>{ const c=cot(x.ticker); return li(esc(x.ticker), posicaoRV(x).cotas+' cotas', '<span class="num">'+money(valorRV(x))+'</span>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')); }).join("")+'</div>'
-    +(semCot?'<span class="muted">Sem cotação para alguns ativos: cole o token da brapi em Ajustes → Investimentos. Enquanto isso, uso o preço médio.</span>':'')));
+    +(semCot?'<span class="muted">Sem cotação para alguns ativos'+(S.cfg.brapiToken?(S.cfg.cotErro?': '+esc(S.cfg.cotErro):'')+'. Abra Ajustes → Investimentos → Testar conexões. Enquanto isso, uso o preço médio.':': falta colar o token da brapi em Ajustes → Investimentos. Enquanto isso, uso o preço médio.')+'</span>':'')));
   let prevTot=0;
   s.push(sl("#2A1608", '<span class="lbl">Proventos de '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+rv.map(x=>{ const rec=provDoMes(x,ym), pp=proventoPrevisto(x,ym); prevTot += rec || (pp?pp.valor:0);
       return li(esc(x.ticker), rec?'recebido':pp?((pp.estim?'estimado pelo último · ':'')+'pagamento '+dataBR(pp.data)):(cot(x.ticker)?'a brapi não trouxe proventos · registre o último':'sem cotação'+(S.cfg.cotErro?': '+esc(S.cfg.cotErro):S.cfg.brapiToken?'':': falta o token')),
@@ -2575,6 +2608,7 @@ document.addEventListener("click", e=>{
     case "inv-del-pedir": S.invForm.confirmDel=true; renderInv(); break;
     case "inv-del-cancel": S.invForm.confirmDel=false; renderInv(); break;
     case "inv-del": (async()=>{ await apagarAtivo(S.invForm.id); fecharInv(); render(); toast("Removido da carteira"); })(); break;
+    case "inv-usar-cot": if(S.invForm && S.invForm.cotPreco){ S.invForm.preco=S.invForm.cotPreco; S.invForm.mover=true; renderInv(); } break;
     case "inv-testar": (async()=>{ toast("Testando…"); S.diag = await testarConexoes(); render(); })(); break;
     case "inv-atualizar": (async()=>{ toast("Buscando cotações…"); const r=await atualizarCotacoes(true); render(); toast(r.ok?"Cotações atualizadas ("+r.n+" de "+r.total+")":r.motivo==="sem token"?"Cole o token da brapi primeiro.":r.motivo==="sem ativos"?"Nenhum FII ou ação cadastrado.":"Não consegui: "+(r.erro||"confira o token e a internet")); })(); break;
     case "lemb-novo": abrirLemb(null); break;
@@ -2635,7 +2669,7 @@ document.addEventListener("input", e=>{
   if(t.id==="busca"){ S.busca=t.value; render(); return; }
   if(t.id==="crop-z" && S.crop){ S.crop.zoom=Number(t.value); desenharCrop(); return; }
   if(S.invForm){ const f=S.invForm;
-    if(t.id==="i-nome") f.nome=t.value; if(t.id==="i-banco") f.banco=t.value; if(t.id==="i-pct") f.pct=t.value; if(t.id==="i-ticker") f.ticker=t.value; if(t.id==="i-qtd") f.qtd=t.value; }
+    if(t.id==="i-nome") f.nome=t.value; if(t.id==="i-banco") f.banco=t.value; if(t.id==="i-pct") f.pct=t.value; if(t.id==="i-ticker"){ f.ticker=t.value; clearTimeout(S.tCot); S.tCot=setTimeout(()=>cotacaoAgora(f), 500); } if(t.id==="i-qtd") f.qtd=t.value; }
   if(S.setup && S.setup.form){ const f=S.setup.form;
     if(t.id==="f-nome") f.nome=t.value; if(t.id==="f-dia") f.dia=t.value; if(t.id==="f-parc") f.parcelas=t.value; }
   if(S.lform){ if(t.id==="lf-titulo") S.lform.titulo=t.value; if(t.id==="lf-dia") S.lform.dia=t.value; }
