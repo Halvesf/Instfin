@@ -1,7 +1,7 @@
 // Service worker: deixa o app abrir sem internet.
 // Ao mudar qualquer arquivo do app, aumente o número da versão abaixo
 // para o celular baixar a versão nova.
-const VERSAO = "financas-v6";
+const VERSAO = "financas-v7";
 const ARQUIVOS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 
 self.addEventListener("install", e => {

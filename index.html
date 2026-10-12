@@ -1492,9 +1492,11 @@ function itemFormHTML(){
      + '<div class="field" style="padding:8px 0"><label for="f-dia">Dia do mês</label><input id="f-dia" class="inp num" type="number" inputmode="numeric" min="1" max="31" value="'+esc(f.dia)+'"></div></div>';
   if(f.tipo==="transfer") h += '<div class="two" style="padding:0 12px"><div class="field" style="padding:8px 0"><label for="f-de">De</label>'+persSel("f-de",f.de)+'</div><div class="field" style="padding:8px 0"><label for="f-para">Para</label>'+persSel("f-para",f.para)+'</div></div>';
   else h += '<div class="field"><label for="f-conta">'+(f.tipo==="entrada"?"Cai em":"Quem paga")+'</label>'+persSel("f-conta",f.conta)+'</div>';
-  if(f.grupo==="futuro") h += '<div class="field"><label for="f-inicio">Começa em</label><input id="f-inicio" class="inp" type="month" value="'+esc(f.inicioMes)+'"></div>';
+  h += '<div class="field"><label for="f-inicio">Começa em'+(f.grupo==="futuro"?'':' (opcional)')+'</label><div style="display:flex;gap:8px"><input id="f-inicio" class="inp" type="month" value="'+esc(f.inicioMes)+'" style="flex:1;min-width:0">'
+     + (f.inicioMes && f.grupo!=="futuro" ? '<button class="btn" data-a="wz-limpa-inicio">Limpar</button>' : '')+'</div>'
+     + (f.grupo!=="futuro" ? '<span class="help">Deixe vazio se já está valendo. Use para valores que mudam: termine o antigo no mês anterior e comece o novo aqui (ex.: adiantamento novo a partir de novembro).</span>' : '')+'</div>';
   h += '<div class="field"><label for="f-dur">Até quando</label><select id="f-dur" class="sel"><option value="sem" '+(f.dur==="sem"?"selected":"")+'>Sem data para acabar</option><option value="parcelas" '+(f.dur==="parcelas"?"selected":"")+'>Número de parcelas restantes</option><option value="mes" '+(f.dur==="mes"?"selected":"")+'>Até um mês específico</option></select></div>';
-  if(f.dur==="parcelas") h += '<div class="field"><label for="f-parc">Parcelas restantes '+(f.grupo==="futuro"?'(a partir do mês de início)':'(contando a deste mês)')+'</label><input id="f-parc" class="inp num" type="number" inputmode="numeric" min="1" max="600" value="'+esc(f.parcelas)+'"></div>';
+  if(f.dur==="parcelas") h += '<div class="field"><label for="f-parc">Parcelas restantes '+(f.inicioMes?'(a partir do mês de início)':'(contando a deste mês)')+'</label><input id="f-parc" class="inp num" type="number" inputmode="numeric" min="1" max="600" value="'+esc(f.parcelas)+'"></div>';
   if(f.dur==="mes") h += '<div class="field"><label for="f-fim">Último mês</label><input id="f-fim" class="inp" type="month" value="'+esc(f.fimMes)+'"></div>';
   if(f.grupo==="futuro") h += '<div class="field"><label class="ck-line"><input id="f-pend" type="checkbox" '+(f.pendente?"checked":"")+'> Decisão pendente (fica fora da projeção até você decidir)</label></div>';
   if(S.setup.err) h += '<p class="err" role="alert" style="margin:0 12px">'+esc(S.setup.err)+'</p>';
@@ -1586,7 +1588,7 @@ async function salvarFormSetup(){
   if(!(dia>=1 && dia<=31)){ st.err="O dia precisa estar entre 1 e 31."; render(); return; }
   if(f.kind==="item"){
     if(f.tipo==="transfer" && f.de===f.para){ st.err="Escolha personalidades diferentes."; render(); return; }
-    let inicio = f.grupo==="futuro" ? (f.inicioMes||null) : null;
+    let inicio = f.inicioMes || null;
     if(f.grupo==="futuro" && !inicio){ st.err="Escolha o mês em que começa."; render(); return; }
     let fim = null;
     if(f.dur==="parcelas"){ const n=parseInt(f.parcelas,10); if(!(n>=1)){ st.err="Diga quantas parcelas faltam."; render(); return; } fim = somaMes(inicio||ymHoje(), n-1); }
@@ -1969,6 +1971,7 @@ document.addEventListener("click", e=>{
     case "wz-ev-q": S.setup.form=eventoRapido(b.dataset.q); S.setup.err=""; render(); { const el=document.getElementById(b.dataset.q==="13a"||b.dataset.q==="13b"?"f-valor":"f-nome"); if(el) el.focus(); } break;
     case "wz-ev-edit": { const ev=PL().eventos.find(x=>x.id===b.dataset.id); if(ev){ S.setup.form=Object.assign({kind:"evento"},ev); S.setup.err=""; render(); } break; }
     case "wz-cancel": S.setup.form=null; S.setup.err=""; render(); break;
+    case "wz-limpa-inicio": S.setup.form.inicioMes=""; render(); break;
     case "wz-save": salvarFormSetup(); break;
     case "wz-del": apagarFormSetup(); break;
     case "wz-zero-pedir": S.setup.confirmZero=true; render(); break;
@@ -2051,7 +2054,7 @@ document.addEventListener("change", e=>{
   if(t.id==="arq-backup" && t.files && t.files[0]){ importar(t.files[0]); return; }
   if(S.setup && S.setup.form){ const f=S.setup.form;
     if(t.id==="f-conta") f.conta=t.value; if(t.id==="f-de") f.de=t.value; if(t.id==="f-para") f.para=t.value;
-    if(t.id==="f-inicio") f.inicioMes=t.value; if(t.id==="f-fim") f.fimMes=t.value; if(t.id==="f-mes") f.mes=t.value;
+    if(t.id==="f-inicio"){ f.inicioMes=t.value; if(f.dur==="parcelas"){ render(); return; } } if(t.id==="f-fim") f.fimMes=t.value; if(t.id==="f-mes") f.mes=t.value;
     if(t.id==="f-pend") f.pendente=t.checked; if(t.id==="f-inc") f.incerto=t.checked;
     if(t.id==="f-dur"){ f.dur=t.value; render(); return; }
     if(t.id==="f-tipo"){ f.tipo=t.value; render(); return; } }
