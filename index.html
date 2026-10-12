@@ -1484,9 +1484,9 @@ const investidoDe = pid => ativosDe(pid).reduce((t,a)=>t+valorAtivo(a),0);
 const patrimonio = pid => saldo(pid) + investidoDe(pid);
 function proventoPrevisto(at, ym){
   const c = cot(at.ticker), q = posicaoRV(at).cotas; if(!c || !q) return null;
-  const divs = (c.divs||[]).slice().sort((x,y)=>x.pag<y.pag?1:-1);
-  const doMes = divs.filter(x=>x.pag && x.pag.slice(0,7)===ym);
-  if(doMes.length) return {valor: Math.round(doMes.reduce((t,x)=>t+x.rate,0)*100*q), data: doMes[0].pag, estim:false};
+  const divs = (c.divs||[]).slice().sort((x,y)=>(x.pag||x.com)<(y.pag||y.com)?1:-1);
+  const doMes = divs.filter(x=>(x.pag||x.com||"").slice(0,7)===ym);
+  if(doMes.length) return {valor: Math.round(doMes.reduce((t,x)=>t+x.rate,0)*100*q), data: doMes[0].pag || ym+"-15", estim:false};
   if(divs.length) return {valor: Math.round(divs[0].rate*100*q), data: ym+"-15", estim:true};
   if(at.provCota>0) return {valor: Math.round(at.provCota*q), data: ym+"-15", estim:true};
   const ult = (at.prov||[]).slice().sort((x,y)=>x.d<y.d?1:-1)[0];
@@ -1553,8 +1553,16 @@ async function cotacaoAgora(f){
   const t=(f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,""), el=()=>document.getElementById("cot-agora");
   const put = h => { f.cotHtml=h; const e=el(); if(e) e.innerHTML=h; };
   if(!/^[A-Z]{4}\d{1,2}[A-Z]?$/.test(t)){ put('Digite o código e eu mostro a cotação de agora.'); return; }
-  if(!(S.cfg.brapiToken||"").trim()){ put('<span style="color:#FF8A96">Sem token da brapi: não consigo buscar a cotação. Cole o token em Ajustes → Investimentos.</span>'); return; }
   put('Buscando a cotação de '+t+'…');
+  await atualizarFeed();
+  if((f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"")!==t) return;
+  const c = noFeed(t) && cot(t);
+  if(c){ f.cotPreco=c.preco;
+    put('<b style="color:var(--fg)">'+t+' agora: '+money(c.preco)+'</b>'+(c.nome?' · '+esc(c.nome):'')+'<br><span>robô do GitHub, '+new Date(c.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</span><br><button class="btn mini" data-a="inv-usar-cot" style="margin-top:6px">Usar como preço (comprei agora)</button>'); return; }
+  if(!(S.cfg.brapiToken||"").trim()){
+    const lk = linkTickers();
+    if(!S.cfg.feed || !S.cfg.feed.ts){ put('<span style="color:#FFC46B">O robô de cotações do GitHub ainda não está ativo.</span> Veja o passo a passo no LEIA-ME. Pode salvar o cadastro agora mesmo: a cotação aparece quando o robô rodar.'); return; }
+    put('<span style="color:#FFC46B">'+t+' ainda não está na lista do robô.</span> '+(lk?'<a href="'+lk+'" target="_blank" rel="noopener" style="color:var(--fg);text-decoration:underline">Adicionar '+t+' no tickers.txt</a> e salvar; em alguns minutos a cotação chega.':'Adicione no tickers.txt do repositório.')+' Pode salvar o cadastro agora mesmo.'); return; }
   try{ const j=await brapi(t), r=j&&j.results&&j.results[0];
     if((f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"")!==t) return;
     if(r && r.regularMarketPrice){ const c=Math.round(r.regularMarketPrice*100); f.cotPreco=c;
@@ -1565,8 +1573,12 @@ async function cotacaoAgora(f){
 async function testarConexoes(){
   const out = [], tok = (S.cfg.brapiToken||"").trim();
   const ok1 = await atualizarCDI(true).catch(()=>false);
-  out.push({nome:"CDI do Banco Central", ok:!!ok1, msg: ok1 ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. ("+S.cfg.cdi.d+")" : (S.cfg.cdiErro||"falhou")+(S.cfg.cdiManual?" · usando o manual de "+S.cfg.cdiManual+"%":" · preencha o CDI manual abaixo")});
-  if(!tok){ out.push({nome:"brapi", ok:false, msg:"Nenhum token colado. Crie grátis em brapi.dev/dashboard e cole acima."}); return out; }
+  if(!ok1) await atualizarFeed();
+  const viaRobo = !ok1 && S.cfg.cdi && S.cfg.cdi.fonte==="robô do GitHub" && S.cfg.cdi.chk===today();
+  out.push({nome:"CDI", ok:!!(ok1||viaRobo), msg: ok1 ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. pelo Banco Central ("+S.cfg.cdi.d+")" : viaRobo ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. pelo robô do GitHub ("+S.cfg.cdi.d+")" : (S.cfg.cdiErro||"falhou")+(S.cfg.cdiManual?" · usando o manual de "+S.cfg.cdiManual+"%":" · preencha o CDI manual abaixo")});
+  const fok = await atualizarFeed(), fd = S.cfg.feed||{};
+  out.push({nome:"Robô do GitHub", ok:fok, msg: fok ? "última busca "+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+" · "+(fd.tickers||[]).length+" ativos na lista" : "não encontrei o cotacoes.json ("+(fd.erro||"?")+"). Crie o robô seguindo o LEIA-ME e rode uma vez."});
+  if(!tok){ await atualizarCotacoes(true); return out; }
   const t = (S.inv.find(a=>a.tipo==="rv")||{}).ticker || "PETR4";
   try{ const j = await brapi(t); const r=j&&j.results&&j.results[0];
     out.push({nome:"Cotação "+t, ok:!!(r&&r.regularMarketPrice), msg: r&&r.regularMarketPrice ? "R$ "+String(r.regularMarketPrice.toFixed(2)).replace(".",",") : "veio sem preço"}); }
@@ -1577,13 +1589,51 @@ async function testarConexoes(){
   await atualizarCotacoes(true);
   return out;
 }
+/* robô do GitHub: arquivo cotacoes.json no próprio repositório */
+function repoInfo(){
+  const h = location.hostname, m = h.match(/^([^.]+)\.github\.io$/i); if(!m) return null;
+  const partes = location.pathname.split("/").filter(Boolean); if(partes.length && /\.html?$/.test(partes[partes.length-1])) partes.pop();
+  if(!partes.length) return {dono:m[1], repo:h, pasta:""};
+  return {dono:m[1], repo:partes[0], pasta:partes.slice(1).join("/")};
+}
+const repoArq = (r, arq) => (r.pasta ? r.pasta+"/" : "") + arq;
+function linkTickers(){ const r=repoInfo(); return r ? "https://github.com/"+r.dono+"/"+r.repo+"/edit/main/"+repoArq(r,"tickers.txt") : ""; }
+function linkRobo(){ const r=repoInfo(); return r ? "https://github.com/"+r.dono+"/"+r.repo+"/actions/workflows/cotacoes.yml" : ""; }
+async function lerFeed(){
+  const r = repoInfo(), urls = [];
+  if(r) urls.push("https://raw.githubusercontent.com/"+r.dono+"/"+r.repo+"/main/"+repoArq(r,"cotacoes.json")+"?t="+Date.now());
+  urls.push("cotacoes.json?t="+Date.now());
+  let ultimoErro = "";
+  for(const u of urls){ try{ const j = await comTempo(u, 10000); if(j && j.ativos) return j; }catch(e){ ultimoErro = String(e.message||e); } }
+  throw new Error(ultimoErro || "arquivo não encontrado");
+}
+async function atualizarFeed(){
+  try{
+    const j = await lerFeed(), ts = Date.parse(j.atualizado) || Date.now(), novo = Object.assign({}, S.cfg.cot||{});
+    for(const [t,a] of Object.entries(j.ativos||{})){
+      if(!a || !(a.preco>0)) continue;
+      novo[t] = {preco:Math.round(a.preco*100), varDia:+a.var||0, nome:a.nome||"", ts, fonte:"robo",
+        divs:(a.divs||[]).filter(x=>x.rate>0).map(x=>({rate:+x.rate, pag:x.pag||"", com:x.com||"", label:""}))};
+    }
+    S.cfg.cot = novo;
+    S.cfg.feed = {ts, tickers:j.tickers||Object.keys(j.ativos||{}), chk:Date.now(), erro:""};
+    if(j.cdi && j.cdi.v>0 && (!S.cfg.cdi || S.cfg.cdi.chk!==today())) S.cfg.cdi = {v:+j.cdi.v, d:j.cdi.d, chk:today(), fonte:"robô do GitHub"};
+    await salvarCfg(); return true;
+  }catch(e){ S.cfg.feed = Object.assign({}, S.cfg.feed||{}, {chk:Date.now(), erro:String(e.message||e)}); await salvarCfg(); return false; }
+}
+const noFeed = t => !!(S.cfg.feed && (S.cfg.feed.tickers||[]).includes(t));
 async function atualizarCotacoes(forcar){
-  const tickers = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
+  const todos = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
   const tok = (S.cfg.brapiToken||"").trim();
-  if(!tickers.length || !tok) return {ok:false, motivo: !tok ? "sem token" : "sem ativos"};
-  if(!forcar && tickers.every(t=>cot(t)) && Date.now()-(S.cfg.cotTs||0) < 30*60e3) return {ok:true, cache:true};
-  const novo = Object.assign({}, S.cfg.cot||{}); let ok=0, erro="";
-  for(const t of tickers){
+  if(!todos.length) return {ok:false, motivo:"sem ativos"};
+  if(!forcar && todos.every(t=>cot(t)) && Date.now()-((S.cfg.feed&&S.cfg.feed.chk)||0) < 20*60e3) return {ok:true, cache:true};
+  const feedOk = await atualizarFeed();
+  const faltam = todos.filter(t=>!noFeed(t));
+  let erro = !feedOk ? "robô do GitHub: "+(S.cfg.feed.erro||"sem arquivo") : faltam.length ? faltam.join(", ")+" fora da lista do robô (tickers.txt)" : "";
+  let ok = todos.length - faltam.length;
+  if(!faltam.length || !tok){ S.cfg.cotErro = erro; if(ok) S.cfg.cotTs = Date.now(); await salvarCfg(); return {ok: ok>0, n:ok, total:todos.length, erro}; }
+  const novo = Object.assign({}, S.cfg.cot||{}); erro = "";
+  for(const t of faltam){
     try{
       let j, semDiv = false;
       try{ j = await brapi(t, "dividends=true"); }
@@ -1600,7 +1650,7 @@ async function atualizarCotacoes(forcar){
     }catch(e){ erro = t+": "+motivoBrapi(e && e.message || e); }
   }
   S.cfg.cot = novo; if(ok) S.cfg.cotTs = Date.now(); S.cfg.cotErro = erro; await salvarCfg();
-  return {ok: ok>0, n:ok, total:tickers.length, erro};
+  return {ok: ok>0, n:ok, total:todos.length, erro};
 }
 
 /* ---------- aba Carteira no perfil ---------- */
@@ -1621,7 +1671,7 @@ function viewCarteira(p){
   }
   if(rv.length){
     const tok = !!(S.cfg.brapiToken||"").trim();
-    h += '<div class="sec">FIIs e ações'+(!tok?' <span class="help" style="font-weight:400">· sem cotação automática: cole o token da brapi em Ajustes</span>':'')+'</div>';
+    h += '<div class="sec">FIIs e ações'+(S.cfg.cotErro?' <span class="help" style="font-weight:400">· '+esc(S.cfg.cotErro)+'</span>':'')+'</div>';
     h += rv.map(a=>{ const ps=posicaoRV(a), c=cot(a.ticker), v=valorRV(a), res=v-ps.custo, pp=proventoPrevisto(a,ym), rec=provDoMes(a,ym);
       return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.ticker)+'</b><small>'+ps.cotas+' cotas · PM '+money(ps.pm)+(a.pmEstimado?' (estimado)':'')+'</small></span>'
         +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b><small style="display:block;font-size:11px;color:var(--fg-3)">'+(c?'cotação '+new Date(c.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):'sem cotação')+'</small>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')+'</span>'
@@ -1868,7 +1918,7 @@ function slidesFII(a){
     +'<span class="chipv '+(varDia>0.05?"up":varDia<-0.05?"down":"flat")+'">'+(varDia>0?"▲ +":varDia<0?"▼ ":"■ ")+varDia.toFixed(2).replace(".",",")+'% hoje</span>'
     +'<div class="kv"><span>Custo (preço médio)</span><b class="num">'+money(custo)+'</b><span>Resultado</span><b class="num" style="color:'+(res>=0?"var(--ok)":"#FF8A96")+'">'+(res>=0?"+":"")+money(res)+(custo?' ('+(res/custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b></div>'
     +'<div class="lst">'+rv.map(x=>{ const c=cot(x.ticker); return li(esc(x.ticker), posicaoRV(x).cotas+' cotas', '<span class="num">'+money(valorRV(x))+'</span>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')); }).join("")+'</div>'
-    +(semCot?'<span class="muted">Sem cotação para alguns ativos'+(S.cfg.brapiToken?(S.cfg.cotErro?': '+esc(S.cfg.cotErro):'')+'. Abra Ajustes → Investimentos → Testar conexões. Enquanto isso, uso o preço médio.':': falta colar o token da brapi em Ajustes → Investimentos. Enquanto isso, uso o preço médio.')+'</span>':'')));
+    +(semCot?'<span class="muted">Sem cotação para alguns ativos'+(S.cfg.cotErro?': '+esc(S.cfg.cotErro):'')+'. Veja Ajustes → Investimentos. Enquanto isso, uso o preço médio.</span>':'')));
   let prevTot=0;
   s.push(sl("#2A1608", '<span class="lbl">Proventos de '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+rv.map(x=>{ const rec=provDoMes(x,ym), pp=proventoPrevisto(x,ym); prevTot += rec || (pp?pp.valor:0);
       return li(esc(x.ticker), rec?'recebido':pp?((pp.estim?'estimado pelo último · ':'')+'pagamento '+dataBR(pp.data)):(cot(x.ticker)?'a brapi não trouxe proventos · registre o último':'sem cotação'+(S.cfg.cotErro?': '+esc(S.cfg.cotErro):S.cfg.brapiToken?'':': falta o token')),
@@ -1891,7 +1941,8 @@ function slidesFII(a){
 CARROSSEIS.rendimentos = slidesRendimentos; CARROSSEIS.fii = slidesFII;
 async function robosInvest(){
   let mudou=false; const ym=ymHoje();
-  await atualizarCDI();
+  const cdiOk = await atualizarCDI();
+  if(!cdiOk && (!S.cfg.cdi || S.cfg.cdi.chk!==today()) && !S.inv.some(x=>x.tipo==="rv")) await atualizarFeed();
   if(S.inv.some(x=>x.tipo==="rv")){ const r = await atualizarCotacoes(false); if(r && r.ok && !r.cache) mudou=true; }
   if(segue("rendimentos")){ const {novo} = await vivo("rendimentos","rendimentos-"+ym,{ym, data:ym+"-01"}); if(novo) mudou=true; }
   if(segue("fii")){
@@ -1974,7 +2025,15 @@ function viewAjustes(){
       .map(([s,t,d])=>'<button data-a="setup" data-s="'+s+'"><span><b style="display:block;font-size:14px">'+t+'</b><span style="font-size:12px;color:var(--fg-3)">'+d+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
   h += '<div class="sec">Investimentos</div>';
-  h += '<div class="field"><label for="aj-token">Token da brapi (cotações e proventos)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Fica guardado só neste aparelho. O app envia à brapi apenas o código dos seus ativos.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span>'+(S.cfg.cotErro?'<span class="help" style="color:#FF8A96">Último problema: '+esc(S.cfg.cotErro)+'</span>':'')+'<div class="two"><button class="btn" data-a="inv-atualizar">Atualizar cotações agora</button><button class="btn" data-a="inv-testar">Testar conexões</button></div>'+(S.diag?'<div class="diag">'+S.diag.map(d=>'<div><b style="color:'+(d.ok?'var(--ok)':'#FF8A96')+'">'+(d.ok?'✓':'✕')+' '+esc(d.nome)+'</b><span>'+esc(d.msg)+'</span></div>').join("")+'</div>':'')+'</div>';
+  { const fd=S.cfg.feed||{}, lt=linkTickers(), lr=linkRobo(), meus=[...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))], fora=meus.filter(t=>!noFeed(t));
+    const velho = fd.ts && Date.now()-fd.ts > 3*864e5;
+    h += '<div class="field"><label>Cotações automáticas (robô do GitHub)</label><span class="help">'
+      +(fd.ts&&!fd.erro?'<b style="color:'+(velho?'#FFC46B':'var(--ok)')+'">'+(velho?'Parado desde ':'Funcionando · última busca ')+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</b>. Busca cotação, proventos e CDI de hora em hora nos dias úteis. '
+        :'<b style="color:#FF8A96">Ainda não encontrei o robô'+(fd.erro?' ('+esc(fd.erro)+')':'')+'.</b> Siga o passo a passo do LEIA-ME para criar o arquivo .github/workflows/cotacoes.yml no GitHub. ')
+      +(fd.tickers&&fd.tickers.length?'Na lista: '+fd.tickers.map(esc).join(", ")+'. ':'')
+      +(fora.length?'<b style="color:#FFC46B">Faltam na lista: '+fora.map(esc).join(", ")+'.</b> ':'')
+      +'</span><div class="two">'+(lt?'<a class="btn" href="'+lt+'" target="_blank" rel="noopener">Editar lista de ativos</a>':'')+(lr?'<a class="btn" href="'+lr+'" target="_blank" rel="noopener">Ver o robô</a>':'')+'</div></div>'; }
+  h += '<div class="field"><label for="aj-token">Token da brapi (opcional)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Não precisa se o robô do GitHub estiver funcionando. Serve só para ativos fora da lista. Fica guardado só neste aparelho.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span>'+(S.cfg.cotErro?'<span class="help" style="color:#FF8A96">Último problema: '+esc(S.cfg.cotErro)+'</span>':'')+'<div class="two"><button class="btn" data-a="inv-atualizar">Atualizar cotações agora</button><button class="btn" data-a="inv-testar">Testar conexões</button></div>'+(S.diag?'<div class="diag">'+S.diag.map(d=>'<div><b style="color:'+(d.ok?'var(--ok)':'#FF8A96')+'">'+(d.ok?'✓':'✕')+' '+esc(d.nome)+'</b><span>'+esc(d.msg)+'</span></div>').join("")+'</div>':'')+'</div>';
   h += '<div class="field"><label for="aj-cdi">CDI anual manual (opcional)</label><input id="aj-cdi" class="inp num" type="number" inputmode="decimal" step="0.01" min="0" max="50" placeholder="Automático" value="'+(S.cfg.cdiManual||"")+'" style="max-width:160px"><span class="help">'+(S.cfg.cdi?'Banco Central: '+String(S.cfg.cdi.v).replace(".",",")+'% a.a. em '+esc(S.cfg.cdi.d)+'. ':'Ainda não consegui buscar o CDI do Banco Central'+(S.cfg.cdiErro?' ('+esc(S.cfg.cdiErro)+')':'')+'. Enquanto isso, preencha aqui (hoje fica perto de 14,9). ')+'Preencha só se quiser usar outro valor.</span></div>';
   h += '<div class="sec">Reserva de emergência</div>';
   h += '<div class="field"><label for="aj-meses">Quantos meses de gastos ficam intocáveis</label><input id="aj-meses" class="inp num" type="number" inputmode="numeric" min="0" max="36" step="1" value="'+esc(S.cfg.reservaMeses)+'" style="max-width:140px"><span class="help">Usado pela aba de Projeção e pelo poder de compra, que chegam nas próximas etapas. Cada pessoa define o seu.</span></div>';

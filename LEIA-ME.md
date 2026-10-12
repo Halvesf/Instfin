@@ -19,6 +19,8 @@ Funciona offline, instala no celular como app e guarda tudo **só no seu aparelh
 | `manifest.webmanifest` | Nome, cores e ícones para instalar como app |
 | `sw.js` | Faz o app abrir sem internet |
 | `icon-*.png` | Ícones do app |
+| `tickers.txt` | Lista dos FIIs e ações que o robô de cotações acompanha |
+| `robo-cotacoes.yml` | O robô de cotações. **Não suba este arquivo**: copie o conteúdo dele (passo a passo abaixo) |
 
 ---
 
@@ -120,9 +122,35 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - **Importar da B3:** baixe o extrato de Movimentação (e, se quiser, o de Posição) na Área do Investidor e importe na aba Carteira.
 - Robôs **@rendimentos** e **@fii**. O @reserva passa a contar a carteira, e o @horizonte inclui os rendimentos.
 
+## Robô de cotações (sem token, tudo automático)
+
+Um robô gratuito do próprio GitHub roda de hora em hora nos dias úteis (10h às 18h) e uma vez toda noite. Ele busca a cotação e os proventos dos seus FIIs e o CDI, e salva tudo no arquivo `cotacoes.json`, no seu repositório. O app lê esse arquivo sozinho.
+
+### Ligar o robô (uma vez só, pelo computador)
+1. Suba os arquivos do app como sempre, **incluindo o `tickers.txt`**, na mesma pasta do `index.html`.
+2. Na página inicial do repositório, clique em **Add file → Create new file**.
+3. No nome do arquivo, digite exatamente: `.github/workflows/cotacoes.yml`. Ao digitar cada `/`, o GitHub cria a pasta sozinho.
+4. Abra o `robo-cotacoes.yml` no Bloco de Notas, copie tudo (Ctrl+A, Ctrl+C) e cole na área grande do GitHub.
+5. Clique em **Commit changes** duas vezes.
+6. Vá em **Settings → Actions → General**. Lá embaixo, em *Workflow permissions*, marque **Read and write permissions** e clique em **Save**.
+7. Clique na aba **Actions** (no topo) → **Cotações** (à esquerda) → **Run workflow** → **Run workflow**.
+8. Espere uns 2 minutos até aparecer o ✓ verde. O `cotacoes.json` aparece no repositório.
+9. No app: Perfis → engrenagem → Investimentos → **Testar conexões**. Tem que aparecer ✓ Robô do GitHub.
+
+### Incluir um FII ou ação novo
+- No app: Ajustes → Investimentos → **Editar lista de ativos**. Isso abre o `tickers.txt` no GitHub.
+- Escreva o código numa linha nova (ex.: `HGLG11`) e clique em **Commit changes**. O robô roda sozinho e em poucos minutos a cotação chega.
+
+### Bom saber
+- As cotações vêm do Yahoo Finanças, com uns 15 minutos de atraso. O provento vem com o valor por cota e a data-com; a data de pagamento é estimada no dia 15.
+- O repositório é público, então a **lista de códigos** do `tickers.txt` fica visível. Quantidades, valores e o resto dos seus dados continuam só no celular.
+- Se o app mostrar "Parado desde…", entre em **Actions → Cotações** e veja se o GitHub desativou o robô (ele faz isso em repositórios sem movimento por 60 dias). Se tiver o botão **Enable workflow**, clique nele.
+- O token da brapi virou opcional.
+
 ## Quando os dados não aparecem
 
 Ajustes → Investimentos → **Testar conexões** mostra o que funcionou e o que falhou:
+- **Robô do GitHub:** se der ✕, confira os passos de "Ligar o robô" e se a última execução em Actions ficou verde.
 - **CDI do Banco Central:** se falhar, preencha o CDI manual logo abaixo. Sem CDI a renda fixa fica em R$ 0,00.
 - **Cotação:** "token recusado" significa token errado ou incompleto.
 - **Proventos:** se o plano grátis da brapi não liberar, registre o último provento do FII e o app estima os próximos a partir dele.

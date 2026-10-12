@@ -1,0 +1,2 @@
+# Um código por linha. O robô do GitHub busca a cotação e os proventos de cada um.
+MXRF11
