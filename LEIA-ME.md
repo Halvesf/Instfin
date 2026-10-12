@@ -142,7 +142,7 @@ Um robô gratuito do próprio GitHub roda de hora em hora nos dias úteis (10h �
 - Escreva o código numa linha nova (ex.: `HGLG11`) e clique em **Commit changes**. O robô roda sozinho e em poucos minutos a cotação chega.
 
 ### Bom saber
-- As cotações vêm do Yahoo Finanças, com uns 15 minutos de atraso. O provento vem com o valor por cota e a data-com; a data de pagamento é estimada no dia 15.
+- A cotação vem da própria B3 (com Yahoo e Fundamentus de reserva) e os proventos vêm do Fundamentus, com data-com, data de pagamento e valor por cota. Nenhuma dessas fontes é oficialmente garantida: se uma parar, o app avisa qual ativo ficou sem cotação.
 - O repositório é público, então a **lista de códigos** do `tickers.txt` fica visível. Quantidades, valores e o resto dos seus dados continuam só no celular.
 - Se o app mostrar "Parado desde…", entre em **Actions → Cotações** e veja se o GitHub desativou o robô (ele faz isso em repositórios sem movimento por 60 dias). Se tiver o botão **Enable workflow**, clique nele.
 - O token da brapi virou opcional.

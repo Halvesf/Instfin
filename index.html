@@ -1559,6 +1559,7 @@ async function cotacaoAgora(f){
   const c = noFeed(t) && cot(t);
   if(c){ f.cotPreco=c.preco;
     put('<b style="color:var(--fg)">'+t+' agora: '+money(c.preco)+'</b>'+(c.nome?' · '+esc(c.nome):'')+'<br><span>robô do GitHub, '+new Date(c.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</span><br><button class="btn mini" data-a="inv-usar-cot" style="margin-top:6px">Usar como preço (comprei agora)</button>'); return; }
+  if(naLista(t) && !(S.cfg.brapiToken||"").trim()){ put('<span style="color:#FFC46B">'+t+' está na lista, mas o robô não conseguiu a cotação na última busca.</span> Abra Ajustes → Investimentos → Ver o robô e rode de novo. Pode salvar o cadastro agora mesmo.'); return; }
   if(!(S.cfg.brapiToken||"").trim()){
     const lk = linkTickers();
     if(!S.cfg.feed || !S.cfg.feed.ts){ put('<span style="color:#FFC46B">O robô de cotações do GitHub ainda não está ativo.</span> Veja o passo a passo no LEIA-ME. Pode salvar o cadastro agora mesmo: a cotação aparece quando o robô rodar.'); return; }
@@ -1577,7 +1578,7 @@ async function testarConexoes(){
   const viaRobo = !ok1 && S.cfg.cdi && S.cfg.cdi.fonte==="robô do GitHub" && S.cfg.cdi.chk===today();
   out.push({nome:"CDI", ok:!!(ok1||viaRobo), msg: ok1 ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. pelo Banco Central ("+S.cfg.cdi.d+")" : viaRobo ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. pelo robô do GitHub ("+S.cfg.cdi.d+")" : (S.cfg.cdiErro||"falhou")+(S.cfg.cdiManual?" · usando o manual de "+S.cfg.cdiManual+"%":" · preencha o CDI manual abaixo")});
   const fok = await atualizarFeed(), fd = S.cfg.feed||{};
-  out.push({nome:"Robô do GitHub", ok:fok, msg: fok ? "última busca "+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+" · "+(fd.tickers||[]).length+" ativos na lista" : "não encontrei o cotacoes.json ("+(fd.erro||"?")+"). Crie o robô seguindo o LEIA-ME e rode uma vez."});
+  out.push({nome:"Robô do GitHub", ok:fok && (fd.ok||[]).length===(fd.tickers||[]).length, msg: fok ? "última busca "+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+" · "+(fd.ok||[]).length+" de "+(fd.tickers||[]).length+" ativos com cotação" : "não encontrei o cotacoes.json ("+(fd.erro||"?")+"). Crie o robô seguindo o LEIA-ME e rode uma vez."});
   if(!tok){ await atualizarCotacoes(true); return out; }
   const t = (S.inv.find(a=>a.tipo==="rv")||{}).ticker || "PETR4";
   try{ const j = await brapi(t); const r=j&&j.results&&j.results[0];
@@ -1616,12 +1617,13 @@ async function atualizarFeed(){
         divs:(a.divs||[]).filter(x=>x.rate>0).map(x=>({rate:+x.rate, pag:x.pag||"", com:x.com||"", label:""}))};
     }
     S.cfg.cot = novo;
-    S.cfg.feed = {ts, tickers:j.tickers||Object.keys(j.ativos||{}), chk:Date.now(), erro:""};
+    S.cfg.feed = {ts, tickers:j.tickers||Object.keys(j.ativos||{}), ok:Object.keys(j.ativos||{}), erros:j.erros||{}, chk:Date.now(), erro:""};
     if(j.cdi && j.cdi.v>0 && (!S.cfg.cdi || S.cfg.cdi.chk!==today())) S.cfg.cdi = {v:+j.cdi.v, d:j.cdi.d, chk:today(), fonte:"robô do GitHub"};
     await salvarCfg(); return true;
   }catch(e){ S.cfg.feed = Object.assign({}, S.cfg.feed||{}, {chk:Date.now(), erro:String(e.message||e)}); await salvarCfg(); return false; }
 }
-const noFeed = t => !!(S.cfg.feed && (S.cfg.feed.tickers||[]).includes(t));
+const naLista = t => !!(S.cfg.feed && (S.cfg.feed.tickers||[]).includes(t));
+const noFeed = t => !!(S.cfg.feed && (S.cfg.feed.ok||[]).includes(t));
 async function atualizarCotacoes(forcar){
   const todos = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
   const tok = (S.cfg.brapiToken||"").trim();
@@ -1629,7 +1631,7 @@ async function atualizarCotacoes(forcar){
   if(!forcar && todos.every(t=>cot(t)) && Date.now()-((S.cfg.feed&&S.cfg.feed.chk)||0) < 20*60e3) return {ok:true, cache:true};
   const feedOk = await atualizarFeed();
   const faltam = todos.filter(t=>!noFeed(t));
-  let erro = !feedOk ? "robô do GitHub: "+(S.cfg.feed.erro||"sem arquivo") : faltam.length ? faltam.join(", ")+" fora da lista do robô (tickers.txt)" : "";
+  let erro = !feedOk ? "robô do GitHub: "+(S.cfg.feed.erro||"sem arquivo") : faltam.length ? faltam.map(t=>naLista(t) ? t+": o robô não conseguiu buscar"+(S.cfg.feed.erros&&S.cfg.feed.erros[t]?" ("+S.cfg.feed.erros[t].slice(0,120)+")":"")+". Toque em Ver o robô e rode de novo" : t+" fora da lista do robô (tickers.txt)").join(" · ") : "";
   let ok = todos.length - faltam.length;
   if(!faltam.length || !tok){ S.cfg.cotErro = erro; if(ok) S.cfg.cotTs = Date.now(); await salvarCfg(); return {ok: ok>0, n:ok, total:todos.length, erro}; }
   const novo = Object.assign({}, S.cfg.cot||{}); erro = "";
@@ -2025,13 +2027,14 @@ function viewAjustes(){
       .map(([s,t,d])=>'<button data-a="setup" data-s="'+s+'"><span><b style="display:block;font-size:14px">'+t+'</b><span style="font-size:12px;color:var(--fg-3)">'+d+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
   h += '<div class="sec">Investimentos</div>';
-  { const fd=S.cfg.feed||{}, lt=linkTickers(), lr=linkRobo(), meus=[...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))], fora=meus.filter(t=>!noFeed(t));
+  { const fd=S.cfg.feed||{}, lt=linkTickers(), lr=linkRobo(), meus=[...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))], fora=meus.filter(t=>!naLista(t)), falhou=meus.filter(t=>naLista(t)&&!noFeed(t));
     const velho = fd.ts && Date.now()-fd.ts > 3*864e5;
     h += '<div class="field"><label>Cotações automáticas (robô do GitHub)</label><span class="help">'
       +(fd.ts&&!fd.erro?'<b style="color:'+(velho?'#FFC46B':'var(--ok)')+'">'+(velho?'Parado desde ':'Funcionando · última busca ')+new Date(fd.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</b>. Busca cotação, proventos e CDI de hora em hora nos dias úteis. '
         :'<b style="color:#FF8A96">Ainda não encontrei o robô'+(fd.erro?' ('+esc(fd.erro)+')':'')+'.</b> Siga o passo a passo do LEIA-ME para criar o arquivo .github/workflows/cotacoes.yml no GitHub. ')
       +(fd.tickers&&fd.tickers.length?'Na lista: '+fd.tickers.map(esc).join(", ")+'. ':'')
       +(fora.length?'<b style="color:#FFC46B">Faltam na lista: '+fora.map(esc).join(", ")+'.</b> ':'')
+      +(falhou.length?'<b style="color:#FF8A96">Sem cotação na última busca: '+falhou.map(esc).join(", ")+'. Toque em Ver o robô → Run workflow.</b> ':'')
       +'</span><div class="two">'+(lt?'<a class="btn" href="'+lt+'" target="_blank" rel="noopener">Editar lista de ativos</a>':'')+(lr?'<a class="btn" href="'+lr+'" target="_blank" rel="noopener">Ver o robô</a>':'')+'</div></div>'; }
   h += '<div class="field"><label for="aj-token">Token da brapi (opcional)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Não precisa se o robô do GitHub estiver funcionando. Serve só para ativos fora da lista. Fica guardado só neste aparelho.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span>'+(S.cfg.cotErro?'<span class="help" style="color:#FF8A96">Último problema: '+esc(S.cfg.cotErro)+'</span>':'')+'<div class="two"><button class="btn" data-a="inv-atualizar">Atualizar cotações agora</button><button class="btn" data-a="inv-testar">Testar conexões</button></div>'+(S.diag?'<div class="diag">'+S.diag.map(d=>'<div><b style="color:'+(d.ok?'var(--ok)':'#FF8A96')+'">'+(d.ok?'✓':'✕')+' '+esc(d.nome)+'</b><span>'+esc(d.msg)+'</span></div>').join("")+'</div>':'')+'</div>';
   h += '<div class="field"><label for="aj-cdi">CDI anual manual (opcional)</label><input id="aj-cdi" class="inp num" type="number" inputmode="decimal" step="0.01" min="0" max="50" placeholder="Automático" value="'+(S.cfg.cdiManual||"")+'" style="max-width:160px"><span class="help">'+(S.cfg.cdi?'Banco Central: '+String(S.cfg.cdi.v).replace(".",",")+'% a.a. em '+esc(S.cfg.cdi.d)+'. ':'Ainda não consegui buscar o CDI do Banco Central'+(S.cfg.cdiErro?' ('+esc(S.cfg.cdiErro)+')':'')+'. Enquanto isso, preencha aqui (hoje fica perto de 14,9). ')+'Preencha só se quiser usar outro valor.</span></div>';
