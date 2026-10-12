@@ -56,6 +56,17 @@ button,label[for]{cursor:pointer}
 /* stories */
 .stories{display:flex;gap:16px;padding:4px 16px 16px;overflow-x:auto;scrollbar-width:none}
 .stories::-webkit-scrollbar{display:none}
+.cs-sub{display:block;font-size:11px;color:var(--fg-3);margin-top:2px}
+.newsline{display:flex;gap:8px;align-items:flex-start;margin:0 16px 10px;padding:10px 12px;border-radius:12px;background:rgba(255,181,71,.10);color:#FFD9A0;font-size:13.5px;line-height:1.4}.newsline svg{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.paineis{padding:14px 0 18px;border-bottom:1px solid var(--line,#1B1E26)}
+.pn-h{display:flex;justify-content:space-between;align-items:center;padding:0 16px 10px;font-size:13px;font-weight:600;color:var(--fg-2)}
+.pn-row{display:flex;gap:10px;overflow-x:auto;padding:0 16px;scrollbar-width:none;scroll-snap-type:x mandatory}.pn-row::-webkit-scrollbar{display:none}
+.pn{position:relative;overflow:hidden;flex:0 0 152px;height:150px;scroll-snap-align:start;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:12px;text-align:left;color:var(--fg);display:flex;flex-direction:column;gap:4px;
+  background:radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--c2) 45%, transparent), transparent 60%), linear-gradient(160deg, var(--bgc), #090B10)}
+.pn-top{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600}.pn-top .bot-av{width:24px;height:24px}
+.pn-l{margin-top:auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2);line-height:1.25;position:relative;z-index:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pn-b{font-size:19px;font-weight:600;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-art{position:absolute;left:0;right:0;top:34px;width:100%;height:46px;pointer-events:none}
 .story{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:transparent;padding:0;width:78px;flex-shrink:0}
 .story .nm{font-size:12px;color:var(--fg);max-width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .story .sd{font-size:11px;color:var(--fg-3);white-space:nowrap}
@@ -97,6 +108,7 @@ button,label[for]{cursor:pointer}
 .cap b{color:var(--fg)}
 .confirm{margin:6px 16px 0;padding:12px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;line-height:1.45}
 .confirm .row{display:flex;gap:8px;flex-wrap:wrap}
+.sheet .confirm{flex-direction:column;align-items:stretch}
 
 .empty{margin:24px 16px;padding:28px 20px;border-radius:16px;border:1px dashed #2A2D38;text-align:center;color:var(--fg-2);line-height:1.6}
 .empty strong{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
@@ -321,6 +333,12 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 .badge.live{background:rgba(255,77,94,.16);color:#FF8A96}
 .destaque{padding:10px 12px;border-radius:12px;background:rgba(157,180,255,.10);font-size:13px;line-height:1.5;color:var(--fg)}
 .lchart{width:100%;height:auto;display:block}
+.chartbox{position:relative;touch-action:pan-y;cursor:crosshair;-webkit-user-select:none;user-select:none}
+.ch-line{position:absolute;top:8px;bottom:22px;width:1px;background:rgba(244,241,236,.35);pointer-events:none}
+.ch-dot{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#F4F1EC;border:2px solid #05060A;pointer-events:none}
+.ch-tip{position:absolute;top:0;transform:translateX(-50%);background:rgba(20,23,31,.96);border:1px solid #2A2F3B;border-radius:10px;padding:6px 9px;font-size:12px;line-height:1.35;white-space:nowrap;pointer-events:none;display:flex;flex-direction:column;gap:1px;z-index:2;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.ch-tip b{font-weight:600;color:var(--fg-2);font-size:11px}.ch-tip span{font-family:var(--mono,monospace);font-size:13px;color:var(--fg)}.ch-tip small{color:var(--fg-3);font-size:11px}
+.ch-hint{display:block;text-align:right;font-size:10.5px;color:var(--fg-3);margin-top:2px}
 /* assistente */
 .wz-top{padding:4px 16px 8px;display:flex;flex-direction:column;gap:8px}
 .wz-top .stp{font-size:12px;color:var(--fg-3);text-transform:uppercase;letter-spacing:1px}
@@ -729,15 +747,45 @@ function viewHome(){
       if(pct>=80) h += '<div class="banner" role="status">'+I.alert+'<span>'+esc(p.curto)+' já usou '+pct+'% do limite de '+mesNome(S.month)+'.'+(pct>=100?' Passou do limite.':'')+'</span></div>';
     }
   }
-  const list = doMes().map(m=>({k:"m",ts:m.ts,fix:!!m.fixado,o:m}))
-    .concat(S.auto.filter(a=>!a.oculto && segue(a.bot) && BOTS[a.bot] && (a.vivo ? S.month===ymHoje() : ymOf(a.data)===S.month)).map(a=>({k:"a",ts:a.vivo?9e15-["meumes","contas","rendimentos","fii","reserva","horizonte"].indexOf(a.bot):a.ts,fix:false,o:a})))
-    .sort((a,b)=>(b.fix?1:0)-(a.fix?1:0)||b.ts-a.ts);
-  if(!S.ready) h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>';
-  else if(!list.length) h += '<div class="empty"><strong>Nada em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil.</div>';
-  else h += list.map(it=>it.k==="m"?post(it.o):autoPost(it.o)).join("");
+  /* feed: novidades dos robôs no topo, depois as pessoas, os painéis numa faixa e o resto dos robôs no fim */
+  const pessoas = doMes().slice().sort((a,b)=>(b.fixado?1:0)-(a.fixado?1:0)||b.ts-a.ts);
+  const robos = S.auto.filter(a=>!a.oculto && segue(a.bot) && BOTS[a.bot] && (a.vivo ? S.month===ymHoje() : ymOf(a.data)===S.month));
+  const novos = robos.filter(novidade).sort((a,b)=>(b.nts||b.ts)-(a.nts||a.ts));
+  const paineis = robos.filter(a=>a.vivo && !novos.includes(a)).sort((a,b)=>ORDEM_PAINEL.indexOf(a.bot)-ORDEM_PAINEL.indexOf(b.bot));
+  const antigos = robos.filter(a=>!a.vivo && !novos.includes(a)).sort((a,b)=>b.ts-a.ts);
+  if(!S.ready){ h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>'; return h; }
+  h += novos.map(autoPost).join("");
+  const faixa = paineis.length ? faixaPaineis(paineis) : '';
+  if(!pessoas.length) h += '<div class="empty"><strong>Nenhum post seu em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil.</div>' + faixa;
+  else h += pessoas.map((m,i)=>post(m)+(i===2?faixa:'')).join("") + (pessoas.length<3?faixa:'');
+  if(antigos.length) h += '<div class="sec" style="padding-top:22px">Mais dos robôs</div>' + antigos.map(autoPost).join("");
   return h;
 }
 
+const ORDEM_PAINEL = ["meumes","contas","fii","rendimentos","reserva","horizonte","holerite"];
+/* post de robô que merece ir pro topo: avisou algo nas últimas 36h e o sininho deixa */
+function novidade(a){
+  if(!notificavel(a)) return false;
+  const t = a.vivo ? (a.nts||0) : (a.nts||a.ts||0);
+  return Date.now()-t < 36*3600e3 && !(a.vivo && a.lido && !a.imp && Date.now()-t > 6*3600e3);
+}
+function capaPainel(a){
+  let lbl = "", big = "";
+  try{ const sl0 = (CARROSSEIS[a.bot](a)||[])[0]||"";
+    const m1 = sl0.match(/<span class="lbl">(.*?)<\/span>/), m2 = sl0.match(/<span class="big[^"]*"[^>]*>(.*?)<\/span>/);
+    lbl = m1 ? m1[1].replace(/<[^>]+>/g,"") : ""; big = m2 ? m2[1].replace(/<[^>]+>/g,"") : "";
+    if(!big){ const m3 = sl0.match(/<div class="li"><span class="mid"><b>(.*?)<\/b>/); if(m3) big = m3[1].replace(/<[^>]+>/g,""); } }catch(_){}
+  return {lbl, big};
+}
+function faixaPaineis(lista){
+  return '<section class="paineis" aria-label="Painéis dos robôs"><div class="pn-h"><span>Seus robôs</span><button class="lnk" data-a="go" data-v="explorar">ver todos</button></div><div class="pn-row">'
+    + lista.map(a=>{ const B=BOTS[a.bot], c=CORES[B.cor]||CORES.azul, cp=capaPainel(a);
+        return '<button class="pn" data-a="botpost" data-id="'+esc(a.id)+'" style="--c1:'+c.c1+';--c2:'+c.c2+';--bgc:'+c.bg+'">'
+          +'<span class="pn-top">'+botAv(a.bot)+'<span class="pn-n">'+esc(B.nome)+'</span></span>'
+          +'<span class="pn-l">'+esc(cp.lbl||B.titulo)+'</span><span class="pn-b num">'+esc(cp.big||"abrir")+'</span>'
+          +'<svg class="pn-art" viewBox="0 0 160 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50 C40 20 70 55 160 8" stroke="var(--c1)" stroke-width="2" fill="none" opacity=".7"/><path d="M0 58 C50 35 90 60 160 26" stroke="var(--c2)" stroke-width="1.5" fill="none" opacity=".5"/></svg></button>'; }).join("")
+    + '</div></section>';
+}
 function post(m){
   const o = getP(origem(m));
   const lbl = m.tipo==="transfer"?(m.categoria||"Transferência"):m.tipo==="aplicacao"?"Investimento":m.tipo==="resgate"?"Resgate":(m.categoria||(m.tipo==="entrada"?"Entrada":"Gasto"));
@@ -749,7 +797,8 @@ function post(m){
    +'<div class="ph"><button class="who linkish" data-a="perfil" data-p="'+esc(origem(m))+'" aria-label="Abrir perfil de '+esc(nm(origem(m)))+'">'+av(o)+'<span class="meta"><span class="t">'+esc(titulo(m))+(m.fixado?'<span class="pin">FIXADO</span>':'')+'</span><span class="s">'+esc(quando(m))+'</span></span></button>'
    +'<button class="ibtn" data-a="menu" data-id="'+esc(m.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
   if(S.del===m.id) h += '<div class="confirm"><span>Apagar esta movimentação e a foto dela?</span><div class="row"><button class="btn" data-a="menu" data-id="">Cancelar</button><button class="btn danger" data-a="apagar" data-id="'+esc(m.id)+'">Apagar</button></div></div>';
-  else if(S.menu===m.id && (m.tipo==="aplicacao"||m.tipo==="resgate")) h += '<div class="pmenu" style="align-items:center"><span style="flex:1;font-size:13px;color:var(--fg-2);padding:0 6px">Movimentação de investimento: ajuste pela aba Carteira do perfil.</span><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
+  else if(S.desf===m.id) h += '<div class="confirm"><span>'+(m.tipo==="aplicacao"?'Desfazer? '+money(m.valor)+' volta para o caixa do '+esc(nm(m.conta))+' e sai da carteira.':'Desfazer? '+money(m.valor)+' sai do caixa do '+esc(nm(m.conta))+' e volta para '+esc(m.ativoNome||"a carteira")+'.')+'</span><div class="row"><button class="btn" data-a="menu" data-id="">Cancelar</button><button class="btn danger" data-a="desfazer" data-id="'+esc(m.id)+'">Desfazer</button></div></div>';
+  else if(S.menu===m.id && (m.tipo==="aplicacao"||m.tipo==="resgate")) h += '<div class="pmenu"><button class="btn" data-a="pedir-desfazer" data-id="'+esc(m.id)+'">'+I.trash+'Desfazer</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   else if(S.menu===m.id) h += '<div class="pmenu"><button class="btn" data-a="editar-mov" data-id="'+esc(m.id)+'">'+I.edit+'Editar</button><button class="btn" data-a="pedir-apagar" data-id="'+esc(m.id)+'">'+I.trash+'Apagar</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   const val = '<div class="val"><span class="lbl">'+esc(lbl)+'</span><span class="big num '+(m.tipo==="gasto"?"gasto":"")+'">'+(m.tipo==="gasto"?"−":"")+money(m.valor)+'</span><span class="sub">'+esc(sub)+'</span></div>';
   if(m.foto) h += '<div class="pb has-photo"><img class="photo" data-foto="'+esc(m.foto)+'" alt="Foto da movimentação">'+val+'</div>';
@@ -784,6 +833,7 @@ function autoPost(a){
   let h = '<article class="post" id="post-'+esc(a.id)+'">'
    +'<div class="ph"><button class="who linkish" data-a="bot" data-b="'+a.bot+'" aria-label="Abrir perfil de '+esc(B.nome)+'">'+botAv(a.bot)+'<span class="meta"><span class="t">'+esc(B.nome)+(a.vivo?'<span class="badge live">ao vivo</span>':'<span class="badge">robô</span>')+'</span><span class="s">'+(a.vivo?'atualizado agora':esc(quando(a)))+'</span></span></button>'
    +'<button class="ibtn" data-a="menu" data-id="'+esc(a.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
+  if(a.vivo && a.resumo && a.nts && S.view==="home" && novidade(a)) h += '<div class="newsline">'+I.alert+'<span>'+esc(a.resumo)+'</span></div>';
   if(S.menu===a.id) h += '<div class="pmenu"><button class="btn" data-a="ocultar" data-id="'+esc(a.id)+'">'+I.eyeoff+'Ocultar post</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   if(CARROSSEIS[a.bot]){
     let slides; try{ slides = CARROSSEIS[a.bot](a); }catch(e){ console.warn(e); slides=[sl("#1B2333",'<span class="txt">Não consegui montar este post.</span>')]; }
@@ -1133,7 +1183,10 @@ function linhaDiaria(dd){
   g += '<text x="'+lx.toFixed(1)+'" y="'+Math.max(12, Y(vals[im])-10).toFixed(1)+'" fill="'+(dd.min.v<0?"#FF8A96":"#FFB547")+'" font-size="11" text-anchor="middle">'+money(dd.min.v).replace(/\s/g," ")+' · '+dataBR(dd.min.data)+'</text>';
   const lab = (i,t,anc) => '<text x="'+X(i).toFixed(1)+'" y="'+(h-8)+'" fill="#8E94A3" font-size="10" text-anchor="'+anc+'">'+t+'</text>';
   g += lab(0,"hoje","start") + (iMes>0?lab(iMes,mesCurto(pts[iMes].data.slice(0,7)),"middle"):'') + lab(n-1,dataBR(pts[n-1].data),"end");
-  return '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Saldo dia a dia até '+dataBR(pts[n-1].data)+'. Ponto mais baixo: '+money(dd.min.v)+' em '+dataBR(dd.min.data)+'">'+g+'</svg>';
+  const svg = '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Saldo dia a dia até '+dataBR(pts[n-1].data)+'. Ponto mais baixo: '+money(dd.min.v)+' em '+dataBR(dd.min.data)+'">'+g+'</svg>';
+  const DS = ["dom","seg","ter","qua","qui","sex","sáb"];
+  return chartBox(svg, w, h, pts.map((p,i)=>({x:X(i), y:Y(vals[i]), t:'<b>'+DS[parseD(p.data).getDay()]+', '+dataBR(p.data)+'</b><span style="color:'+(p.v<0?'#FF8A96':'inherit')+'">'+money(p.v)+'</span>'
+    +p.itens.slice(0,3).map(x=>'<small>'+(x.e>0?'+ ':'− ')+esc(x.nome)+' '+money(Math.abs(x.e))+'</small>').join("")+(p.itens.length>3?'<small>+'+(p.itens.length-3)+' itens</small>':'')})));
 }
 function recRegular(ym){ /* sobra recorrente do mês (sem eventos), para achar a "virada" */
   const ids = disponiveis().map(p=>p.id);
@@ -1167,6 +1220,11 @@ function descPrev(p){
   if(p.tipo==="transfer") return nm(p.de)+" → "+nm(p.para);
   return (p.tipo==="entrada"?"cai no ":"sai do ")+nm(p.conta);
 }
+/* gráfico tocável: guarda os pontos e mostra o valor no toque */
+function chartBox(svg, w, h, pts){
+  const dados = pts.map(p=>[+(p.x/w).toFixed(4), +(p.y/h).toFixed(4), p.t]);
+  return '<div class="chartbox" data-pts="'+esc(JSON.stringify(dados))+'">'+svg+'<span class="ch-line" hidden></span><span class="ch-dot" hidden></span><span class="ch-tip" hidden></span><span class="ch-hint">toque no gráfico para ver o valor</span></div>';
+}
 function linhaSVG(series, labels, opts){
   const w=320,h=150,pl=6,pr=6,pt=20,pb=24;
   const all = series.flatMap(s=>s.v); let mn=Math.min(0,...all), mx=Math.max(...all); if(mx===mn) mx=mn+1;
@@ -1182,14 +1240,17 @@ function linhaSVG(series, labels, opts){
   const s0 = series[0];
   g += '<circle cx="'+X(s0.v.length-1).toFixed(1)+'" cy="'+Y(s0.v[s0.v.length-1]).toFixed(1)+'" r="3.5" fill="#F4F1EC"/>';
   labels.forEach((t,i)=>{ if(i===0||i===labels.length-1||i%3===0) g += '<text x="'+X(i).toFixed(1)+'" y="'+(h-6)+'" fill="#8E94A3" font-size="10" text-anchor="'+(i===0?"start":i===labels.length-1?"end":"middle")+'">'+t+'</text>'; });
-  return '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc((opts&&opts.aria)||"Gráfico")+'">'+g+'</svg>';
+  const svg = '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc((opts&&opts.aria)||"Gráfico")+'">'+g+'</svg>';
+  const tips = (opts&&opts.tips) || labels;
+  return chartBox(svg, w, h, labels.map((_,i)=>({x:X(i), y:Y(s0.v[i]), t:'<b>'+esc(tips[i])+'</b>'+series.map((se,k)=>'<span'+(k?' style="color:'+se.cor+'"':'')+'>'+(se.nome?esc(se.nome)+': ':'')+money(Math.round(se.v[i]*100))+'</span>').join("")})));
 }
-function barrasSVG(vals, labels, cor){
+function barrasSVG(vals, labels, cor, tips){
   const w=320,h=130,pt=10,pb=20, n=vals.length, mx=Math.max(1,...vals), bw=(w-8)/n;
   let g='';
   vals.forEach((v,i)=>{ const bh=(h-pt-pb)*v/mx; g+='<rect x="'+(4+i*bw+bw*.18).toFixed(1)+'" y="'+(h-pb-bh).toFixed(1)+'" width="'+(bw*.64).toFixed(1)+'" height="'+Math.max(v?2:0,bh).toFixed(1)+'" rx="3" fill="'+(i===n-1?cor:"#3A3E4A")+'"/>';
     g+='<text x="'+(4+i*bw+bw/2).toFixed(1)+'" y="'+(h-6)+'" fill="#8E94A3" font-size="9" text-anchor="middle">'+labels[i]+'</text>'; });
-  return '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Renda dos últimos '+n+' meses">'+g+'</svg>';
+  const svg = '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Renda dos últimos '+n+' meses">'+g+'</svg>';
+  return chartBox(svg, w, h, vals.map((v,i)=>({x:4+i*bw+bw/2, y:h-pb-(h-pt-pb)*v/mx, t:'<b>'+esc((tips||labels)[i])+'</b><span>'+money(v)+'</span>'})));
 }
 const semPlano = () => sl("#1B2333", '<span class="lbl">Falta o seu plano</span><span class="txt">Eu preciso saber sua renda e suas contas fixas para trabalhar.</span><div><button class="btn pri" data-a="setup" data-s="1">Configurar meu dinheiro</button></div>');
 
@@ -1302,7 +1363,7 @@ function slidesHolerite(a){
   if(partes.length) s.push(sl("#1F1408", '<span class="lbl">Partes do pagamento em '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+partes.map(p=>{ const mm=movDoPrev(p.key);
       return li(esc(p.nome), dataBR(p.data)+(p.incerto?' · incerto':''), '<span class="num">'+money(mm?mm.valor:p.valor)+'</span>'+statusPrev(p)); }).join("")+'</div>'));
   const r = rendaPorMes(12);
-  if(r.some(x=>x.v)) s.push(sl("#1F1408", '<span class="lbl">Sua renda nos últimos 12 meses</span>'+barrasSVG(r.map(x=>x.v), r.map(x=>MESES[Number(x.ym.slice(5))-1].charAt(0).toUpperCase()), "#FFB067")
+  if(r.some(x=>x.v)) s.push(sl("#1F1408", '<span class="lbl">Sua renda nos últimos 12 meses</span>'+barrasSVG(r.map(x=>x.v), r.map(x=>MESES[Number(x.ym.slice(5))-1].charAt(0).toUpperCase()), "#FFB067", r.map(x=>mesCurto(x.ym)))
     +'<span class="muted">Salários e adiantamentos registrados. Este mês: '+money(r[r.length-1].v)+'.</span>'));
   return s;
 }
@@ -1334,7 +1395,7 @@ function slidesHorizonte(a){
   const temInc = pj.some(x=>x.comInc!==x.v);
   const min = pj.reduce((m,x)=>x.v<m.v?x:m, pj[0]);
   s.push(sl("#10153A", '<span class="lbl">Saldo previsto · próximos 12 meses</span><span class="big num">'+money(pj[pj.length-1].v)+'</span><span class="muted">em '+mesCurto(pj[pj.length-1].ym)+(temInc?' · com os incertos: '+money(pj[pj.length-1].comInc):'')+'</span>'
-    + linhaSVG([{v:pj.map(x=>x.v/100), cor:"#9DB4FF", area:true}].concat(temInc?[{v:pj.map(x=>x.comInc/100), cor:"#F2C14E", tracejado:true}]:[]), pj.map(x=>mesCurto(x.ym)), {aria:"Saldo previsto mês a mês"})
+    + linhaSVG([{v:pj.map(x=>x.v/100), cor:"#9DB4FF", area:true, nome:temInc?"Previsto":""}].concat(temInc?[{v:pj.map(x=>x.comInc/100), cor:"#F2C14E", tracejado:true, nome:"Com incertos"}]:[]), pj.map(x=>mesCurto(x.ym)), {aria:"Saldo previsto mês a mês"})
     +'<span class="muted">'+(temInc?'Linha tracejada: somando o que é incerto (como o PPR). ':'')+'Menor ponto: '+money(min.v)+' em '+mesCurto(min.ym)+'. Soma todas as personalidades, menos benefícios. '
     +(rendaPassivaMes().tot ? 'Inclui ~'+money(rendaPassivaMes().tot)+' por mês de rendimentos dos investimentos. ' : '')+(gastoVariavelMedio() ? 'Já desconta '+money(gastoVariavelMedio())+' por mês de gastos do dia a dia (sua média recente).' : 'Ainda não desconta gastos do dia a dia: conforme você registrar, eu uso a sua média e a linha fica mais realista.')+'</span>'));
   const ym = ymHoje(), fimJ = somaMes(ym,11), marcos = [];
@@ -1510,6 +1571,45 @@ function rendimentoMes(ym){
 }
 async function salvarAtivo(at){ if(IDB.db) await IDB.put("inv", JSON.parse(JSON.stringify(at))); S.inv = S.inv.filter(x=>x.id!==at.id).concat([at]); }
 async function apagarAtivo(id){ if(IDB.db) await IDB.del("inv", id); S.inv = S.inv.filter(x=>x.id!==id); }
+/* tira da carteira a operação que gerou esta movimentação; true se achou */
+async function reverterOp(m){
+  const at = S.inv.find(x=>x.id===m.ativoId); if(!at) return false;
+  const ent = m.tipo==="aplicacao";
+  if(m.tipo==="entrada" && m.categoria==="Rendimento"){
+    const i = (at.prov||[]).findIndex(x=>x.d===m.data && x.valor===m.valor); if(i<0) return false;
+    at.prov.splice(i,1); await salvarAtivo(at); return true;
+  }
+  if(at.tipo==="rv"){
+    const i = (at.ops||[]).findIndex(o=>o.d===m.data && (ent?o.qtd>0:o.qtd<0) && Math.round(Math.abs(o.qtd)*o.preco)===m.valor);
+    if(i<0) return false;
+    at.ops.splice(i,1);
+    if(!at.ops.length && !(at.prov||[]).length) await apagarAtivo(at.id); else await salvarAtivo(at);
+    return true;
+  }
+  const vinc = S.movs.filter(x=>x.ativoId===at.id && (x.tipo==="aplicacao"||x.tipo==="resgate"));
+  if(ent && vinc.length===1 && (at.ops||[]).length<=1){ await apagarAtivo(at.id); return true; }
+  const i = (at.ops||[]).findIndex(o=>o.d===m.data && o.v===(ent?m.valor:-m.valor)); if(i<0) return false;
+  at.ops.splice(i,1); at.anchors = (at.anchors||[]).filter(a=>a.d!==m.data);
+  if(!at.anchors.length) at.anchors = [{d:(at.ops[0]||{}).d||today(), v:(at.ops||[]).reduce((t,o)=>t+o.v,0)}];
+  await salvarAtivo(at); return true;
+}
+async function desfazerInvest(id){
+  const m = S.movs.find(x=>x.id===id); S.desf=null; if(!m) return render();
+  try{
+    const achou = await reverterOp(m);
+    S.movs = S.movs.filter(x=>x.id!==id); if(IDB.db) await IDB.del("movs", id);
+    render(); toast(achou ? "Desfeito: caixa e carteira ajustados" : "Caixa ajustado. Confira a carteira, não achei a operação.");
+    rodarRobos();
+  }catch(e){ toast("Não deu para desfazer. Tente de novo."); }
+}
+/* apagar ativo devolvendo ao caixa tudo que saiu por ele (foi teste ou erro) */
+async function apagarAtivoTudo(id){
+  const ms = S.movs.filter(x=>x.ativoId===id);
+  for(const m of ms){ if(IDB.db) await IDB.del("movs", m.id); }
+  S.movs = S.movs.filter(x=>x.ativoId!==id);
+  await apagarAtivo(id);
+}
+const efeitoCaixaAtivo = id => S.movs.filter(x=>x.ativoId===id).reduce((t,m)=>t+(m.tipo==="aplicacao"?m.valor:-m.valor),0);
 async function movInvest(tipo, pid, valor, data, at, legenda){
   const m = {id:newId(), tipo, conta:pid, valor, data, ts:Date.now(), categoria: tipo==="aplicacao"?"Investimento":"Resgate", legenda:legenda||"", ativoId:at.id, ativoNome:at.nome||at.ticker, conferido:true, fixado:false, criadoEm:Date.now()};
   if(IDB.db) await IDB.put("movs", m); S.movs = S.movs.concat([m]); return m;
@@ -1659,8 +1759,18 @@ async function atualizarCotacoes(forcar){
 function viewCarteira(p){
   const ym = ymHoje(), ativos = ativosDe(p.id), rf = ativos.filter(a=>a.tipo==="rf"), rv = ativos.filter(a=>a.tipo==="rv");
   const inv = investidoDe(p.id), caixa = saldo(p.id);
-  let rendM = 0; for(const a of ativos) rendM += a.tipo==="rf" ? rendRF(a, ym+"-01", today()) : provDoMes(a, ym);
-  let h = '<div class="cart-sum"><div><span>Patrimônio</span><b class="num">'+money(caixa+inv)+'</b></div><div><span>Caixa</span><b class="num">'+money(caixa)+'</b></div><div><span>Investido</span><b class="num">'+money(inv)+'</b></div><div><span>Rendeu em '+MESES[Number(ym.slice(5))-1].slice(0,3)+'</span><b class="num pos">+'+money(Math.round(rendM))+'</b></div></div>';
+  const mesC = MESES[Number(ym.slice(5))-1].slice(0,3);
+  let recebido = 0, aReceber = 0, valoriz = 0, rendFixa = 0;
+  for(const a of ativos){
+    if(a.tipo==="rf"){ rendFixa += rendRF(a, ym+"-01", today()); continue; }
+    const rec = provDoMes(a, ym); recebido += rec;
+    if(!rec){ const pp = proventoPrevisto(a, ym); if(pp && pp.data>=today()) aReceber += pp.valor; }
+    valoriz += valorRV(a) - posicaoRV(a).custo;
+  }
+  const sinal = v => (v>=0?'+':'−')+money(Math.abs(Math.round(v)));
+  let h = '<div class="cart-sum"><div><span>Patrimônio</span><b class="num">'+money(caixa+inv)+'</b></div><div><span>Caixa</span><b class="num">'+money(caixa)+'</b></div><div><span>Investido</span><b class="num">'+money(inv)+'</b></div>'
+    +'<div><span>Ganhos em '+mesC+'</span><b class="num pos">+'+money(Math.round(recebido+rendFixa))+'</b><small class="cs-sub">'+(rendFixa?'renda fixa '+money(Math.round(rendFixa))+' · ':'')+'proventos '+money(recebido)+'</small></div>'
+    +(rv.length?'<div><span>A receber em '+mesC+'</span><b class="num">'+money(aReceber)+'</b><small class="cs-sub">proventos previstos</small></div><div><span>Valorização</span><b class="num" style="color:'+(valoriz>=0?'var(--ok)':'#FF8A96')+'">'+sinal(valoriz)+'</b><small class="cs-sub">cotas hoje − preço médio</small></div>':'')+'</div>';
   h += '<div class="cart-acts"><button class="btn" data-a="inv-rf-novo" data-p="'+esc(p.id)+'">'+I.plus+'Renda fixa</button><button class="btn" data-a="inv-rv-novo" data-p="'+esc(p.id)+'">'+I.plus+'FII ou ação</button><button class="btn" data-a="inv-b3" data-p="'+esc(p.id)+'">Importar da B3</button></div>';
   if(rf.length){
     const cdiTxt = cdiAno() ? 'CDI '+(cdiAno()*100).toFixed(2).replace(".",",")+'% a.a.'+(S.cfg.cdiManual>0?' (manual)':S.cfg.cdi?' · Banco Central '+esc(S.cfg.cdi.d):'') : 'CDI não carregado: defina em Ajustes → Investimentos';
@@ -1676,7 +1786,7 @@ function viewCarteira(p){
     h += '<div class="sec">FIIs e ações'+(S.cfg.cotErro?' <span class="help" style="font-weight:400">· '+esc(S.cfg.cotErro)+'</span>':'')+'</div>';
     h += rv.map(a=>{ const ps=posicaoRV(a), c=cot(a.ticker), v=valorRV(a), res=v-ps.custo, pp=proventoPrevisto(a,ym), rec=provDoMes(a,ym);
       return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.ticker)+'</b><small>'+ps.cotas+' cotas · PM '+money(ps.pm)+(a.pmEstimado?' (estimado)':'')+'</small></span>'
-        +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b><small style="display:block;font-size:11px;color:var(--fg-3)">'+(c?'cotação '+new Date(c.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):'sem cotação')+'</small>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')+'</span>'
+        +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b><small style="display:block;font-size:11px;color:var(--fg-3)">'+(c?'cotação '+new Date(c.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):'sem cotação')+'</small>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'% hoje</span>':'')+'</span>'
         +'<button class="ibtn" data-a="inv-rv-edit" data-id="'+esc(a.id)+'" aria-label="Editar '+esc(a.ticker)+'">'+I.edit+'</button></div>'
         +'<div class="kv"><span>Valor</span><b class="num">'+money(v)+'</b><span>Resultado</span><b class="num '+(res>=0?"pos":"")+'" style="'+(res<0?"color:#FF8A96":"")+'">'+(res>=0?"+":"")+money(res)+(ps.custo?' ('+(res/ps.custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b>'
         +'<span>Provento de '+MESES[Number(ym.slice(5))-1].slice(0,3)+'</span><b class="num">'+(rec?'<span class="pos">recebido '+money(rec)+'</span>':pp?(pp.estim?'~':'')+money(pp.valor)+' · '+dataBR(pp.data):'—')+'</b></div>'
@@ -1742,7 +1852,8 @@ function renderInv(){
   if(f.modo==="b3") h += b3HTML(f, p);
   if(f.err) h += '<p class="err" role="alert">'+esc(f.err)+'</p>';
   if(f.modo!=="b3" || f.preview) h += '<div class="field" style="padding-top:14px"><button class="btn pri block" data-a="inv-salvar">'+({"rf-conf":"Salvar saldo","prov":"Registrar provento","b3":"Importar para o "+(p?esc(p.curto):"")}[f.modo]||"Salvar")+'</button>'
-     + ((f.modo==="rf-edit"||f.modo==="rv-edit") ? (f.confirmDel?'<div class="confirm" style="margin:8px 0 0"><span>Apagar da carteira? O dinheiro não volta para o caixa.</span><div class="row"><button class="btn" data-a="inv-del-cancel">Cancelar</button><button class="btn danger" data-a="inv-del">Apagar</button></div></div>':'<button class="btn danger" data-a="inv-del-pedir" style="margin-top:6px">Apagar da carteira</button>') : '')+'</div>';
+     + ((f.modo==="rf-edit"||f.modo==="rv-edit") ? (f.confirmDel?(()=>{ const ef=efeitoCaixaAtivo(f.id), n=S.movs.filter(x=>x.ativoId===f.id).length;
+          return '<div class="confirm" style="margin:8px 0 0">'+(n?'<span><b>Foi teste ou erro?</b> Apago tudo e '+(ef>=0?money(ef)+' volta para o caixa do ':money(-ef)+' sai do caixa do ')+esc(p?p.curto:"")+', como se nunca tivesse existido ('+n+' post'+(n>1?'s':'')+' some'+(n>1?'m':'')+').</span><button class="btn danger" data-a="inv-del-tudo">Apagar e desfazer no caixa</button><span style="margin-top:6px"><b>Vendeu ou resgatou de verdade?</b> Use Vender ou Resgatar no card: o dinheiro entra no caixa pelo valor de hoje.</span><button class="btn" data-a="inv-del">Só tirar da carteira (caixa fica igual)</button>':'<span>Apagar da carteira? Nada saiu do caixa por este ativo, então o caixa fica igual.</span><button class="btn danger" data-a="inv-del">Apagar</button>')+'<button class="btn" data-a="inv-del-cancel">Cancelar</button></div>'; })():'<button class="btn danger" data-a="inv-del-pedir" style="margin-top:6px">Apagar da carteira</button>') : '')+'</div>';
   h += '</div>';
   const sh = document.getElementById("sheet"); const st = sh.scrollTop; const foco = document.activeElement && sh.contains(document.activeElement) ? document.activeElement.id : "";
   sh.innerHTML = h; sh.scrollTop = st;
@@ -1919,7 +2030,7 @@ function slidesFII(a){
   s.push(sl("#1F1408", '<span class="lbl">Sua carteira de FIIs e ações</span><span class="big num">'+money(val)+'</span>'
     +'<span class="chipv '+(varDia>0.05?"up":varDia<-0.05?"down":"flat")+'">'+(varDia>0?"▲ +":varDia<0?"▼ ":"■ ")+varDia.toFixed(2).replace(".",",")+'% hoje</span>'
     +'<div class="kv"><span>Custo (preço médio)</span><b class="num">'+money(custo)+'</b><span>Resultado</span><b class="num" style="color:'+(res>=0?"var(--ok)":"#FF8A96")+'">'+(res>=0?"+":"")+money(res)+(custo?' ('+(res/custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b></div>'
-    +'<div class="lst">'+rv.map(x=>{ const c=cot(x.ticker); return li(esc(x.ticker), posicaoRV(x).cotas+' cotas', '<span class="num">'+money(valorRV(x))+'</span>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')); }).join("")+'</div>'
+    +'<div class="lst">'+rv.map(x=>{ const c=cot(x.ticker); return li(esc(x.ticker), posicaoRV(x).cotas+' cotas', '<span class="num">'+money(valorRV(x))+'</span>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'% hoje</span>':'')); }).join("")+'</div>'
     +(semCot?'<span class="muted">Sem cotação para alguns ativos'+(S.cfg.cotErro?': '+esc(S.cfg.cotErro):'')+'. Veja Ajustes → Investimentos. Enquanto isso, uso o preço médio.</span>':'')));
   let prevTot=0;
   s.push(sl("#2A1608", '<span class="lbl">Proventos de '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+rv.map(x=>{ const rec=provDoMes(x,ym), pp=proventoPrevisto(x,ym); prevTot += rec || (pp?pp.valor:0);
@@ -1941,6 +2052,21 @@ function slidesFII(a){
   return s;
 }
 CARROSSEIS.rendimentos = slidesRendimentos; CARROSSEIS.fii = slidesFII;
+/* próxima data-com: a anunciada, ou a provável pelo padrão dos últimos meses (ex.: último dia útil) */
+function ultimoDiaUtil(ym){ let d = new Date(Number(ym.slice(0,4)), Number(ym.slice(5)), 0); while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()-1); return d; }
+const isoD = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function dataComProvavel(at){
+  const c = cot(at.ticker); if(!c || !(c.divs||[]).length) return null;
+  const hj = today(), coms = c.divs.map(x=>x.com).filter(Boolean).sort();
+  const fut = coms.filter(d=>d>=hj); const ult = c.divs.slice().sort((x,y)=>(x.com<y.com?1:-1))[0];
+  if(fut.length) return {data:fut[0], certa:true, rate:ult&&ult.rate};
+  const ult3 = coms.slice(-3); if(ult3.length<3) return null;
+  if(ult3.every(d=>isoD(ultimoDiaUtil(d.slice(0,7)))===d)){
+    let ym = ymHoje(), d = isoD(ultimoDiaUtil(ym)); if(d<hj){ ym = somaMes(ym,1); d = isoD(ultimoDiaUtil(ym)); }
+    return {data:d, certa:false, rate:ult&&ult.rate};
+  }
+  return null;
+}
 async function robosInvest(){
   let mudou=false; const ym=ymHoje();
   const cdiOk = await atualizarCDI();
@@ -1952,6 +2078,23 @@ async function robosInvest(){
     const rv = S.inv.filter(x=>x.tipo==="rv" && posicaoRV(x).cotas>0);
     let val=0, vp=0; for(const x of rv){ const v=valorRV(x), c=cot(x.ticker); val+=v; if(c) vp+=v*c.varDia; }
     const vd = val ? vp/val : 0;
+    /* dia de pagamento e data-com provável */
+    const hj = today(), avisados = S.cfg.fiiAvisos || (S.cfg.fiiAvisos = {});
+    for(const x of rv){
+      const pp = proventoPrevisto(x, ym);
+      const kPag = "pag-"+x.ticker+"-"+ym;
+      if(pp && !pp.estim && pp.data===hj && !provDoMes(x, ym) && !avisados[kPag]){
+        avisados[kPag]=1; await salvarCfg();
+        await avisar(a, "Hoje cai "+money(pp.valor)+" de "+x.ticker+". Caiu na conta? Toque em Registrar no 2º slide.", true); mudou=true;
+      }
+      const dc = dataComProvavel(x);
+      const kCom = "com-"+x.ticker+"-"+(dc&&dc.data);
+      if(dc && !avisados[kCom]){
+        const dias = Math.round((parseD(dc.data)-parseD(hj))/864e5);
+        if(dias>=0 && dias<=3){ avisados[kCom]=1; await salvarCfg();
+          await avisar(a, "Data-com "+(dc.certa?"":"provável ")+"de "+x.ticker+": "+dataBR(dc.data)+(dias===0?" (hoje)":dias===1?" (amanhã)":"")+". Quem tiver cotas no fim desse dia recebe o próximo provento"+(dc.rate?" (último: "+money(Math.round(dc.rate*100))+" por cota)":"")+".", false); mudou=true; }
+      }
+    }
     if(Math.abs(vd)>=3 && S.cfg.fiiAlerta!==today()){ S.cfg.fiiAlerta=today(); await salvarCfg(); await avisar(a, "Sua carteira de FIIs "+(vd>0?"subiu":"caiu")+" "+Math.abs(vd).toFixed(1).replace(".",",")+"% hoje.", true); mudou=true; }
   }
   return mudou;
@@ -2501,6 +2644,7 @@ async function patchMov(id, patch){
 }
 async function apagarMov(id){
   const m = S.movs.find(x=>x.id===id);
+  if(m && m.ativoId){ try{ await reverterOp(m); }catch(_){} }
   S.movs = S.movs.filter(x=>x.id!==id); S.del=null; render();
   if(IDB.db){ try{ await IDB.del("movs", id); if(m&&m.foto) await apagarFoto(m.foto); toast("Apagado"); }catch(e){ toast("Não apagou. Tente de novo."); } }
 }
@@ -2607,12 +2751,35 @@ function toast(t){ const el=document.getElementById("toast"); el.textContent=t; 
 /* ======================================================================
    EVENTOS
    ====================================================================== */
+/* toque nos gráficos */
+function mostrarPonto(box, clientX){
+  let pts; try{ pts = box._pts || (box._pts = JSON.parse(box.dataset.pts)); }catch(_){ return; }
+  if(!pts.length) return;
+  const r = box.querySelector("svg").getBoundingClientRect(), fx = (clientX - r.left)/r.width;
+  let k = 0; for(let i=1;i<pts.length;i++) if(Math.abs(pts[i][0]-fx) < Math.abs(pts[k][0]-fx)) k = i;
+  const [px, py, t] = pts[k], bx = box.getBoundingClientRect();
+  const x = r.left - bx.left + px*r.width, y = r.top - bx.top + py*r.height;
+  const ln = box.querySelector(".ch-line"), dot = box.querySelector(".ch-dot"), tip = box.querySelector(".ch-tip");
+  ln.hidden = dot.hidden = tip.hidden = false;
+  ln.style.left = x+"px"; dot.style.left = x+"px"; dot.style.top = y+"px";
+  if(tip._k !== k){ tip.innerHTML = t; tip._k = k; }
+  const tw = tip.offsetWidth, half = tw/2;
+  tip.style.left = Math.min(Math.max(x, half+2), bx.width-half-2)+"px";
+  tip.style.top = (y - tip.offsetHeight - 12 < 0 ? Math.min(y + 14, r.height - tip.offsetHeight) : y - tip.offsetHeight - 12)+"px";
+  const h = box.querySelector(".ch-hint"); if(h) h.style.visibility = "hidden";
+}
+document.addEventListener("pointerdown", e=>{ const b = e.target.closest && e.target.closest(".chartbox"); if(!b) return; b._ativo = true; mostrarPonto(b, e.clientX); });
+document.addEventListener("pointermove", e=>{ const b = e.target.closest && e.target.closest(".chartbox"); if(b && (b._ativo || e.pointerType==="mouse")) mostrarPonto(b, e.clientX); });
+document.addEventListener("pointerup", ()=>{ document.querySelectorAll(".chartbox").forEach(b=>b._ativo=false); });
+
 document.addEventListener("click", e=>{
   const b = e.target.closest("[data-a]"); if(!b) return;
   const a = b.dataset.a, f = S.form, ed = S.edit;
   switch(a){
     case "go": S.view=b.dataset.v; S.edit=null; S.del=null; S.menu=null; S.lform=null; S.importar=false; render(); window.scrollTo(0,0); if(S.view==="notif") marcarLidas(); break;
     case "pedir-apagar": S.del=b.dataset.id; S.menu=null; render(); break;
+    case "pedir-desfazer": S.desf=b.dataset.id; S.menu=null; render(); break;
+    case "desfazer": desfazerInvest(b.dataset.id); break;
     case "editar-mov": { const m=S.movs.find(x=>x.id===b.dataset.id); S.menu=null; if(m) abrirNova(null,null,m); break; }
     case "ocultar": { const a=S.auto.find(x=>x.id===b.dataset.id); S.menu=null; if(a){ a.oculto=true; if(IDB.db) IDB.put("auto",Object.assign({},a)).catch(()=>{}); } render(); toast("Post ocultado"); break; }
     case "registrar-lemb": { const a=S.auto.find(x=>x.id===b.dataset.id); const l=a&&(S.cfg.lembretes||[]).find(x=>x.id===a.lid); if(l) abrirNova(null,{tipo:l.tipo,conta:l.conta,de:l.de,para:l.para,valor:l.valor,categoria:l.categoria,legenda:l.titulo,autoId:a.id}); break; }
@@ -2669,6 +2836,7 @@ document.addEventListener("click", e=>{
     case "inv-salvar": salvarInv(); break;
     case "inv-del-pedir": S.invForm.confirmDel=true; renderInv(); break;
     case "inv-del-cancel": S.invForm.confirmDel=false; renderInv(); break;
+    case "inv-del-tudo": (async()=>{ await apagarAtivoTudo(S.invForm.id); fecharInv(); render(); toast("Apagado e desfeito no caixa"); rodarRobos(); })(); break;
     case "inv-del": (async()=>{ await apagarAtivo(S.invForm.id); fecharInv(); render(); toast("Removido da carteira"); })(); break;
     case "inv-usar-cot": if(S.invForm && S.invForm.cotPreco){ S.invForm.preco=S.invForm.cotPreco; S.invForm.mover=true; renderInv(); } break;
     case "inv-testar": (async()=>{ toast("Testando…"); S.diag = await testarConexoes(); render(); })(); break;
@@ -2685,7 +2853,7 @@ document.addEventListener("click", e=>{
     case "nova-pers": abrirEditor(null); break;
     case "editar-pers": abrirEditor(b.dataset.p); break;
     case "filtro": S.filtro=b.dataset.f; render(); break;
-    case "menu": S.del=null; S.menu = b.dataset.id && S.menu!==b.dataset.id ? b.dataset.id : null; render(); break;
+    case "menu": S.del=null; S.desf=null; S.menu = b.dataset.id && S.menu!==b.dataset.id ? b.dataset.id : null; render(); break;
     case "apagar": apagarMov(b.dataset.id); break;
     case "conf": { const m=S.movs.find(x=>x.id===b.dataset.id); if(m) patchMov(m.id,{conferido:!m.conferido}); break; }
     case "fixar": { const m=S.movs.find(x=>x.id===b.dataset.id); if(m) patchMov(m.id,{fixado:!m.fixado}); break; }
