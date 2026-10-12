@@ -57,6 +57,39 @@ button,label[for]{cursor:pointer}
 .stories{display:flex;gap:16px;padding:4px 16px 16px;overflow-x:auto;scrollbar-width:none}
 .stories::-webkit-scrollbar{display:none}
 .cs-sub{display:block;font-size:11px;color:var(--fg-3);margin-top:2px}
+/* artes dos robôs */
+.arte{position:relative;margin:0 0 12px;border-radius:0;overflow:hidden}
+.arte-svg{display:block;width:100%;height:auto;aspect-ratio:320/170}
+.arte-cap{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);font-size:12.5px;font-weight:600;color:#fff;background:rgba(5,6,10,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:5px 10px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* bolinhas de story */
+.ring.st-novo{background:conic-gradient(from 200deg,#FFD447,#FF5E7E,#B44BFF,#FFD447)}
+.ring.st-visto{background:#3A3E4A}
+.ring.bring .in{display:flex;align-items:center;justify-content:center}.ring.bring .bot-av{width:46px;height:46px;border:0;border-radius:14px}
+.st-div{flex:0 0 1px;align-self:stretch;margin:6px 0 22px;background:#2A2D38}
+.st-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#FF5E7E;margin-right:4px;vertical-align:1px}
+/* visualizador */
+.story-view{position:fixed;inset:0;z-index:60;background:#000;display:flex;justify-content:center;touch-action:pan-y}
+.story-view[hidden]{display:none}
+.st-frame{position:relative;width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;background:radial-gradient(130% 70% at 50% 0%, var(--st-bg,#12233F), #05060A 70%)}
+.st-bars{display:flex;gap:4px;padding:10px 10px 0}.st-bars span{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden}.st-bars i{display:block;height:100%;background:#fff}
+.st-head{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 6px 12px}
+.st-who{display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--fg);padding:0;text-align:left}.st-who .av,.st-who .bot-av{width:34px;height:34px}
+.st-who b{display:block;font-size:14px}.st-who small{font-size:12px;color:var(--fg-3)}
+.st-x{color:var(--fg)}
+.st-pg{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
+.st-pg .slide{min-height:0;background:none}.st-pg .arte{margin:0 0 4px}
+.st-pg .card,.st-pg .memo{margin:0 12px}
+.st-pg-foto{display:flex;align-items:center;padding:0}
+.st-foto{position:relative;width:100%;height:100%;display:flex;align-items:flex-end;overflow:hidden}
+.st-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.st-foto::after{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.st-semfoto{align-items:center;justify-content:center}.st-semfoto .trail{position:absolute;inset:0;width:100%;height:100%}
+.st-val{position:relative;z-index:1;display:flex;flex-direction:column;gap:6px;padding:24px 20px 28px}
+.st-semfoto .st-val{padding:20px}
+.st-val .lbl{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.st-val .big{font-size:44px;letter-spacing:-1.5px}.st-leg{font-size:16px;color:#fff}
+.st-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+.st-pos{font-size:12px;color:var(--fg-3)}
 .newsline{display:flex;gap:8px;align-items:flex-start;margin:0 16px 10px;padding:10px 12px;border-radius:12px;background:rgba(255,181,71,.10);color:#FFD9A0;font-size:13.5px;line-height:1.4}.newsline svg{width:18px;height:18px;flex-shrink:0;margin-top:1px}
 .paineis{padding:14px 0 18px;border-bottom:1px solid var(--line,#1B1E26)}
 .pn-h{display:flex;justify-content:space-between;align-items:center;padding:0 16px 10px;font-size:13px;font-weight:600;color:var(--fg-2)}
@@ -423,6 +456,7 @@ button.tile{border:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
 <div class="nebula" aria-hidden="true"></div>
 <div id="app"></div>
 <div id="sheet" class="sheet" hidden></div>
+<div id="story" class="story-view" hidden role="dialog" aria-label="Stories"></div>
 <div id="crop" class="crop" hidden role="dialog" aria-modal="true" aria-labelledby="crop-t"></div>
 <div id="toast" class="toast" role="status" hidden></div>
 <nav class="nav" aria-label="Navegação principal"><div class="nav-in" id="nav"></div></nav>
@@ -735,8 +769,7 @@ function topSimple(title, backTo){
    ====================================================================== */
 function viewHome(){
   let h = topMonth();
-  h += '<div class="stories">'+S.pers.map(p=>'<button class="story" data-a="perfil" data-p="'+esc(p.id)+'">'+ring(p)+'<span class="nm">'+esc(p.curto)+'</span><span class="sd num">'+money(saldo(p.id))+'</span></button>').join("")
-    +'<button class="story" data-a="nova-pers"><span class="ring add"><span class="in">'+I.plus+'</span></span><span class="nm" style="color:var(--fg-2)">Nova</span><span class="sd">&nbsp;</span></button></div>';
+  h += bolhasStories();
   if(S.ready && !PL().configurado) h += '<div class="banner" style="background:#12233F;color:var(--fg)" role="status">'+I.wallet+'<span style="flex:1"><b>Deixe o app útil de verdade.</b> Configure renda, contas fixas e metas, e os robôs passam a mostrar seu mês, o que falta pagar e quanto sobra.<span style="display:block;margin-top:10px"><button class="btn pri" data-a="setup" data-s="0">Configurar meu dinheiro</button></span></span></div>';
   else if(S.ready && !Object.keys(BOTS).some(segue)) h += '<div class="notice" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>Siga robôs para o feed ganhar vida sozinho: dólar, lembretes, resumo da semana e lembranças.</span><button class="btn seg" data-a="go" data-v="explorar">Explorar</button></div>';
   if(S.dbTravado) h += '<div class="banner" role="alert">'+I.alert+'<span><b>Seus dados estão guardados, mas outra cópia do app está aberta e travou a atualização.</b> Feche o Finanças em todo lugar (o app instalado e as abas do navegador com este endereço), depois abra só um. Nada do que você fizer agora será salvo.</span></div>';
@@ -750,15 +783,12 @@ function viewHome(){
   /* feed: novidades dos robôs no topo, depois as pessoas, os painéis numa faixa e o resto dos robôs no fim */
   const pessoas = doMes().slice().sort((a,b)=>(b.fixado?1:0)-(a.fixado?1:0)||b.ts-a.ts);
   const robos = S.auto.filter(a=>!a.oculto && segue(a.bot) && BOTS[a.bot] && (a.vivo ? S.month===ymHoje() : ymOf(a.data)===S.month));
-  const novos = robos.filter(novidade).sort((a,b)=>(b.nts||b.ts)-(a.nts||a.ts));
-  const paineis = robos.filter(a=>a.vivo && !novos.includes(a)).sort((a,b)=>ORDEM_PAINEL.indexOf(a.bot)-ORDEM_PAINEL.indexOf(b.bot));
-  const antigos = robos.filter(a=>!a.vivo && !novos.includes(a)).sort((a,b)=>b.ts-a.ts);
+  /* no feed, robô só entra com aviso importante; o resto vive nos stories */
+  const novos = robos.filter(a=>novidade(a) && a.imp).sort((a,b)=>(b.nts||b.ts)-(a.nts||a.ts));
   if(!S.ready){ h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>'; return h; }
   h += novos.map(autoPost).join("");
-  const faixa = paineis.length ? faixaPaineis(paineis) : '';
-  if(!pessoas.length) h += '<div class="empty"><strong>Nenhum post seu em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil.</div>' + faixa;
-  else h += pessoas.map((m,i)=>post(m)+(i===2?faixa:'')).join("") + (pessoas.length<3?faixa:'');
-  if(antigos.length) h += '<div class="sec" style="padding-top:22px">Mais dos robôs</div>' + antigos.map(autoPost).join("");
+  if(!pessoas.length) h += '<div class="empty"><strong>Nenhum post seu em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil e story por 24 horas. Os robôs estão nas bolinhas lá em cima.</div>';
+  else h += pessoas.map(post).join("");
   return h;
 }
 
@@ -835,6 +865,7 @@ function autoPost(a){
    +'<button class="ibtn" data-a="menu" data-id="'+esc(a.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
   if(a.vivo && a.resumo && a.nts && S.view==="home" && novidade(a)) h += '<div class="newsline">'+I.alert+'<span>'+esc(a.resumo)+'</span></div>';
   if(S.menu===a.id) h += '<div class="pmenu"><button class="btn" data-a="ocultar" data-id="'+esc(a.id)+'">'+I.eyeoff+'Ocultar post</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
+  h += arteDe(a);
   if(CARROSSEIS[a.bot]){
     let slides; try{ slides = CARROSSEIS[a.bot](a); }catch(e){ console.warn(e); slides=[sl("#1B2333",'<span class="txt">Não consegui montar este post.</span>')]; }
     h += carrossel(a, slides);
@@ -2748,6 +2779,326 @@ function render(){
 let tt;
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.hidden=false; clearTimeout(tt); tt=setTimeout(()=>el.hidden=true,2000); }
 
+/* ---------- artes dos robôs: ilustrações que mudam com os seus números ---------- */
+const AW = 320, AH = 170;
+const clamp01 = v => Math.max(0, Math.min(1, v));
+let _artId = 0;
+function artSVG(inner, defs, aria){ return '<svg class="arte-svg" viewBox="0 0 '+AW+' '+AH+'" preserveAspectRatio="xMidYMid slice" role="img" aria-label="'+esc(aria||"")+'"><defs>'+(defs||"")+'</defs>'+inner+'</svg>'; }
+function ceu(id, c1, c2){ return '<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c1+'"/><stop offset="1" stop-color="'+c2+'"/></linearGradient>'; }
+function estrelas(n, seed, maxY){ let g='', s=seed||7; for(let i=0;i<n;i++){ s=(s*9301+49297)%233280; const x=s/233280*AW; s=(s*9301+49297)%233280; const y=s/233280*(maxY||80); g+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(i%5?0.8:1.4)+'" fill="#fff" opacity="'+(i%3?0.35:0.7)+'"/>'; } return g; }
+/* rostinho: humor 1 feliz, 0 neutro, -1 preocupado */
+function rosto(cx, cy, r, humor, cor){
+  const ol = '<circle cx="'+(cx-r*0.38)+'" cy="'+(cy-r*0.12)+'" r="'+(r*0.11)+'" fill="'+cor+'"/><circle cx="'+(cx+r*0.38)+'" cy="'+(cy-r*0.12)+'" r="'+(r*0.11)+'" fill="'+cor+'"/>';
+  const y = cy + r*0.32, w = r*0.42;
+  const boca = humor>0 ? 'M'+(cx-w)+' '+y+' Q'+cx+' '+(y+r*0.32)+' '+(cx+w)+' '+y
+             : humor<0 ? 'M'+(cx-w)+' '+(y+r*0.16)+' Q'+cx+' '+(y-r*0.16)+' '+(cx+w)+' '+(y+r*0.16)
+             : 'M'+(cx-w*0.8)+' '+(y+r*0.06)+' L'+(cx+w*0.8)+' '+(y+r*0.06);
+  const bochecha = humor>0 ? '<circle cx="'+(cx-r*0.62)+'" cy="'+(cy+r*0.18)+'" r="'+(r*0.13)+'" fill="#FF8FA8" opacity=".5"/><circle cx="'+(cx+r*0.62)+'" cy="'+(cy+r*0.18)+'" r="'+(r*0.13)+'" fill="#FF8FA8" opacity=".5"/>' : '';
+  const gota = humor<0 ? '<path d="M'+(cx+r*0.78)+' '+(cy-r*0.55)+' q'+(r*0.12)+' '+(r*0.22)+' 0 '+(r*0.3)+' q-'+(r*0.12)+' -'+(r*0.08)+' 0 -'+(r*0.3)+'z" fill="#9CD3FF"/>' : '';
+  return ol + '<path d="'+boca+'" stroke="'+cor+'" stroke-width="'+(r*0.09)+'" fill="none" stroke-linecap="round"/>' + bochecha + gota;
+}
+const legenda = t => '<span class="arte-cap">'+t+'</span>';
+
+const ARTES = {
+  /* @meumês: o "tempo" do seu dinheiro */
+  meumes(a){
+    let dd; try{ dd = diario(); }catch(_){ return ""; }
+    const livre = dd.livre, neg = dd.min.v < 0;
+    const ref = Math.max(1, custoEmergencia().v || 1);
+    const clima = neg ? "chuva" : livre < ref*0.15 ? "nublado" : "sol";
+    const id = "mm"+(++_artId);
+    const cores = clima==="sol" ? ["#2E6FD8","#9DD4FF"] : clima==="nublado" ? ["#47506A","#9AA6BE"] : ["#1E2333","#4A5470"];
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    if(clima==="sol"){
+      g += '<g transform="translate(250 46)">'+Array.from({length:12},(_,i)=>'<rect x="-2" y="-40" width="4" height="12" rx="2" fill="#FFE27A" opacity=".85" transform="rotate('+(i*30)+')"/>').join("")+'<circle r="22" fill="#FFD447"/>'+rosto(0,0,22,1,"#7A4A00")+'</g>';
+    } else {
+      g += '<circle cx="250" cy="44" r="20" fill="#FFD447" opacity="'+(clima==="nublado"?.8:.0)+'"/>';
+    }
+    const nuvem = (x,y,s,op) => '<g transform="translate('+x+' '+y+') scale('+s+')" opacity="'+op+'"><ellipse cx="0" cy="10" rx="34" ry="14" fill="#fff"/><circle cx="-12" cy="2" r="14" fill="#fff"/><circle cx="10" cy="-2" r="18" fill="#fff"/></g>';
+    if(clima!=="sol") g += nuvem(232,52,1.15,clima==="chuva"?.55:.92) + nuvem(120,40,.8,clima==="chuva"?.45:.8);
+    else g += nuvem(70,40,.7,.85);
+    if(clima==="chuva") for(let i=0;i<18;i++){ const x=150+(i*13)%150, y=70+(i*29)%60; g+='<line x1="'+x+'" y1="'+y+'" x2="'+(x-4)+'" y2="'+(y+10)+'" stroke="#9CD3FF" stroke-width="2" stroke-linecap="round" opacity=".8"/>'; }
+    g += '<path d="M0 140 Q80 125 160 138 T320 132 V170 H0Z" fill="'+(clima==="sol"?"#3FA36B":clima==="nublado"?"#4C7A5E":"#34463D")+'"/>';
+    /* carteira com rostinho */
+    g += '<g transform="translate(64 112)"><rect x="-30" y="-24" width="60" height="42" rx="9" fill="#6B4BD8"/><rect x="-30" y="-24" width="60" height="12" rx="6" fill="#8E73F0"/><rect x="14" y="-6" width="18" height="14" rx="4" fill="#4B33A8"/><circle cx="22" cy="1" r="3" fill="#FFD447"/>'+rosto(-6,0,13,neg?-1:clima==="nublado"?0:1,"#fff")+'</g>';
+    const cap = clima==="sol" ? "Céu limpo: "+money(livre)+" livres até "+dataBR(dd.fim) : clima==="nublado" ? "Nublado: sobra pouco até "+dataBR(dd.fim)+" ("+money(livre)+")" : "Chuva: vai faltar "+money(-dd.min.v)+" em "+dataBR(dd.min.data);
+    return artSVG(g, ceu(id, cores[0], cores[1]), cap) + legenda(cap);
+  },
+
+  /* @horizonte: a crista da montanha é a sua projeção; o sol sobe se ela cresce */
+  horizonte(a){
+    let pj; try{ pj = projecao(12); }catch(_){ return ""; } if(!pj || !pj.length) return "";
+    const vs = pj.map(x=>x.v), mn = Math.min(...vs), mx = Math.max(...vs), ini = vs[0], fim = vs[vs.length-1];
+    const cresc = clamp01((fim-ini)/Math.max(Math.abs(ini), 1)/2 + .35);
+    const id = "hz"+(++_artId), sunY = 120 - cresc*80;
+    const Y = v => 145 - (mx===mn ? .5 : (v-mn)/(mx-mn))*70;
+    const pts = vs.map((v,i)=>[i*AW/(vs.length-1), Y(v)]);
+    let crista = 'M0 '+pts[0][1].toFixed(1); for(let i=1;i<pts.length;i++){ const [x0,y0]=pts[i-1],[x1,y1]=pts[i]; const xm=(x0+x1)/2; crista += ' Q'+x0.toFixed(1)+' '+y0.toFixed(1)+' '+xm.toFixed(1)+' '+((y0+y1)/2).toFixed(1); }
+    crista += ' T'+AW+' '+pts[pts.length-1][1].toFixed(1);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>' + estrelas(26, 3, 70*(1-cresc)+10);
+    g += '<circle cx="230" cy="'+sunY.toFixed(1)+'" r="34" fill="#FFB86B" opacity=".25"/><circle cx="230" cy="'+sunY.toFixed(1)+'" r="20" fill="#FFCF7A"/>';
+    g += '<path d="M0 118 L60 92 L110 112 L170 84 L230 108 L290 90 L320 100 V170 H0Z" fill="#2A2F5C" opacity=".7"/>';
+    g += '<path d="'+crista+' V170 H0Z" fill="#141A3A"/><path d="'+crista+'" stroke="#9DB4FF" stroke-width="2" fill="none"/>';
+    g += '<circle cx="'+AW+'" cy="'+pts[pts.length-1][1].toFixed(1)+'" r="4" fill="#fff"/>';
+    const cap = fim>=ini ? "Sua montanha sobe: "+money(fim)+" em "+mesCurto(pj[pj.length-1].ym) : "A trilha desce: "+money(fim)+" em "+mesCurto(pj[pj.length-1].ym);
+    return artSVG(g, ceu(id, cresc>.6?"#3B4FA8":"#121636", cresc>.6?"#F7A8A0":"#3A2F5A"), cap) + legenda(cap);
+  },
+
+  /* @reserva: o pote enchendo até a meta */
+  reserva(a){
+    const rp = getP(PL().reservaPers); const c = custoEmergencia(); if(!rp || !c.v) return "";
+    const metaM = S.cfg.reservaMeses||6, meses = patrimonio(rp.id)/c.v, pct = clamp01(meses/metaM);
+    const id = "rs"+(++_artId), topo = 52, base = 150, nivel = base - (base-topo-8)*pct;
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    for(let i=1;i<=metaM && i<=12;i++){ const y = base-(base-topo-8)*(i/metaM); g += '<line x1="196" x2="206" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#FFB3D9" stroke-width="1.5" opacity=".6"/><text x="212" y="'+(y+3.5).toFixed(1)+'" font-size="9" fill="#FFD1E8" opacity=".8">'+i+'m</text>'; }
+    g += '<clipPath id="'+id+'c"><path d="M110 '+topo+' h80 v8 q10 6 10 20 v62 q0 18 -18 18 h-64 q-18 0 -18 -18 v-62 q0 -14 10 -20z"/></clipPath>';
+    g += '<g clip-path="url(#'+id+'c)"><rect x="90" y="'+nivel.toFixed(1)+'" width="120" height="'+(base-nivel+20).toFixed(1)+'" fill="#FF8FC7"/><path d="M90 '+nivel.toFixed(1)+' q15 -5 30 0 t30 0 t30 0 t30 0" fill="#FFB3D9"/>';
+    for(let i=0;i<Math.round(pct*14);i++){ const x=112+(i*23)%78, y=base-6-Math.floor(i/4)*12; g += '<ellipse cx="'+x+'" cy="'+y+'" rx="8" ry="4" fill="#FFD447" stroke="#C9971A" stroke-width="1"/>'; }
+    g += '</g><path d="M110 '+topo+' h80 v8 q10 6 10 20 v62 q0 18 -18 18 h-64 q-18 0 -18 -18 v-62 q0 -14 10 -20z" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5"/><rect x="104" y="'+(topo-12)+'" width="92" height="14" rx="5" fill="#D9C2FF"/>';
+    g += '<g transform="translate(150 '+(Math.min(nivel, base-24)-0).toFixed(1)+')">'+rosto(0,-14,13,pct>=1?1:pct>=.5?0:-1,"#3A0F26")+'</g>';
+    const cap = pct>=1 ? "Pote cheio: "+meses.toFixed(1).replace(".",",")+" meses guardados" : "Pote em "+Math.round(pct*100)+"%: "+meses.toFixed(1).replace(".",",")+" de "+metaM+" meses";
+    return artSVG(g, ceu(id, "#3A1030", "#120610"), cap) + legenda(cap);
+  },
+
+  /* @fii: um prédio por fundo; janelas acesas = proventos do mês que já caíram */
+  fii(a){
+    const rv = S.inv.filter(x=>x.tipo==="rv" && posicaoRV(x).cotas>0); if(!rv.length) return "";
+    const ym = a.ym || ymHoje(); let prev=0, rec=0, var0=0, tot=0;
+    for(const x of rv){ const r=provDoMes(x,ym), pp=proventoPrevisto(x,ym); rec+=r; prev+= r || (pp?pp.valor:0); const v=valorRV(x), c=cot(x.ticker); tot+=v; if(c) var0+=v*c.varDia; }
+    const aceso = prev ? clamp01(rec/prev) : 0, vd = tot ? var0/tot : 0;
+    const id = "fi"+(++_artId), n = Math.min(6, Math.max(3, rv.length));
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>' + estrelas(30, 11, 70) + '<circle cx="268" cy="36" r="14" fill="#FFE9B0"/><circle cx="274" cy="31" r="12" fill="#2A1A0C"/>';
+    const larg = 260/n;
+    for(let i=0;i<n;i++){
+      const x = 30+i*larg, at = rv[i % rv.length], h = 60 + ((hash(at.ticker)>>2)%50) + (i<rv.length ? 0 : -20);
+      g += '<rect x="'+x.toFixed(1)+'" y="'+(160-h)+'" width="'+(larg-8).toFixed(1)+'" height="'+h+'" rx="3" fill="'+(i<rv.length?"#3A2A1A":"#2A2016")+'"/>';
+      const cols = Math.max(2, Math.floor((larg-14)/9)), rows = Math.floor((h-14)/12);
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ const k=(r*cols+c+i*7)%10; const on = i<rv.length && k/10 < aceso + .08;
+        g += '<rect x="'+(x+5+c*9).toFixed(1)+'" y="'+(160-h+7+r*12)+'" width="5" height="7" rx="1" fill="'+(on?"#FFC857":"#4A3826")+'" opacity="'+(on?.95:.8)+'"/>'; }
+      if(i<rv.length) g += '<text x="'+(x+(larg-8)/2).toFixed(1)+'" y="'+(156-h)+'" font-size="9" fill="#FFD9A0" text-anchor="middle">'+esc(at.ticker)+'</text>';
+    }
+    g += '<rect y="158" width="'+AW+'" height="12" fill="#1A120A"/>';
+    const cap = rec>=prev && prev ? "Todas as janelas acesas: "+money(rec)+" de proventos este mês" : prev ? Math.round(aceso*100)+"% das janelas acesas: "+money(rec)+" de "+money(prev)+" já caíram" : "Cidade dos seus fundos"+(vd?" · "+(vd>0?"+":"")+vd.toFixed(2).replace(".",",")+"% hoje":"");
+    return artSVG(g, ceu(id, "#1A1030", "#3A2210"), cap) + legenda(cap);
+  },
+
+  /* @contas: o calendário do mês com o que já foi pago */
+  contas(a){
+    const ym = ymHoje(), its = itensDoMes(ym).filter(p=>p.tipo!=="entrada" && !p.pendente); if(!its.length) return "";
+    const hj = today(), d0 = parseD(ym+"-01"), nd = ultimoDia(ym), off = d0.getDay();
+    const id = "ct"+(++_artId);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    g += '<rect x="70" y="14" width="180" height="146" rx="12" fill="#F4F1EC"/><rect x="70" y="14" width="180" height="26" rx="12" fill="#8B6CF0"/><rect x="70" y="30" width="180" height="10" fill="#8B6CF0"/>';
+    g += '<text x="160" y="32" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">'+esc(MESES[d0.getMonth()].toUpperCase())+'</text>';
+    let pagas=0, total=0;
+    for(let d=1; d<=nd; d++){
+      const k=d+off-1, c=k%7, r=Math.floor(k/7), x=80+c*24, y=46+r*18, ds=ym+"-"+pad(d);
+      const doDia = its.filter(p=>p.data===ds), hoje = ds===hj;
+      if(doDia.length){ total+=doDia.length; const pg = doDia.every(p=>!aberto(p)); if(pg) pagas+=doDia.length;
+        const late = !pg && ds<hj;
+        g += '<circle cx="'+(x+8)+'" cy="'+(y+6)+'" r="8" fill="'+(pg?"#3FBF7F":late?"#FF4D5E":"#FFE7A3")+'"/>';
+        if(pg) g += '<path d="M'+(x+4)+' '+(y+6)+' l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>';
+      }
+      if(hoje) g += '<circle cx="'+(x+8)+'" cy="'+(y+6)+'" r="9.5" fill="none" stroke="#8B6CF0" stroke-width="2"/>';
+      if(!doDia.length || !doDia.every(p=>!aberto(p))) g += '<text x="'+(x+8)+'" y="'+(y+9.5)+'" font-size="9" fill="'+(doDia.length?"#3A2A00":"#8E94A3")+'" text-anchor="middle">'+d+'</text>';
+    }
+    const cap = pagas===total ? "Mês riscado: todas as "+total+" contas pagas" : pagas+" de "+total+" contas pagas em "+MESES[d0.getMonth()];
+    return artSVG(g, ceu(id, "#24164A", "#0E0A1E"), cap) + legenda(cap);
+  },
+
+  /* @rendimentos: a plantinha cresce com a renda passiva */
+  rendimentos(a){
+    let rp; try{ rp = rendaPassivaMes(); }catch(_){ return ""; }
+    const tot = rp.tot||0; const folhas = Math.max(1, Math.min(14, Math.round(tot/1000)+1));
+    const id = "rd"+(++_artId), alt = 30 + folhas*6;
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    g += '<circle cx="60" cy="40" r="16" fill="#FFE27A" opacity=".9"/>';
+    g += '<path d="M128 132 h64 l-8 32 h-48z" fill="#C46A3A"/><rect x="124" y="126" width="72" height="10" rx="4" fill="#E08A55"/>';
+    g += '<path d="M160 128 C158 '+(128-alt*0.5)+' 164 '+(128-alt*0.8)+' 160 '+(128-alt)+'" stroke="#3FA36B" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    for(let i=0;i<folhas;i++){ const t=(i+1)/(folhas+1), y=128-alt*t, lado=i%2?1:-1, s=.7+.5*(1-Math.abs(t-.5));
+      g += '<ellipse cx="'+(160+lado*12*s)+'" cy="'+y.toFixed(1)+'" rx="'+(12*s).toFixed(1)+'" ry="'+(5.5*s).toFixed(1)+'" fill="'+(i%3?"#5FD08F":"#3FBF7F")+'" transform="rotate('+(lado*-28)+' '+(160+lado*12*s)+' '+y.toFixed(1)+')"/>'; }
+    if(tot>0) for(let i=0;i<Math.min(5,Math.ceil(tot/3000));i++) g += '<circle cx="'+(214+i*14)+'" cy="'+(150-(i%2)*6)+'" r="6" fill="#FFD447" stroke="#C9971A"/>';
+    const cap = tot ? "Sua planta rende ~"+money(tot)+" por mês" : "Planta recém-plantada: cadastre seus investimentos";
+    return artSVG(g, ceu(id, "#0F2A22", "#06110D"), cap) + legenda(cap);
+  },
+
+  /* @câmbio: a nota de dólar sobe ou desce */
+  cambio(a){
+    const p = +a.pct||0, up = p>0.05, down = p<-0.05, id = "cb"+(++_artId);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    const rot = up?-10:down?10:0, ty = up?-8:down?8:0;
+    g += '<g transform="translate(150 '+(88+ty)+') rotate('+rot+')"><rect x="-80" y="-36" width="160" height="72" rx="8" fill="#7FC79A"/><rect x="-72" y="-28" width="144" height="56" rx="5" fill="none" stroke="#2E6B45" stroke-width="2"/><circle r="20" fill="#A8DDB9" stroke="#2E6B45" stroke-width="2"/><text y="8" font-size="24" font-weight="800" fill="#2E6B45" text-anchor="middle">$</text></g>';
+    const cor = up?"#FF8A96":down?"#6FDCA8":"#C9CDD6";
+    g += '<g transform="translate(264 '+(up?60:down?110:85)+')"><circle r="22" fill="'+cor+'" opacity=".18"/><path d="'+(up?"M0 -12 L10 2 H4 V12 H-4 V2 H-10Z":down?"M0 12 L10 -2 H4 V-12 H-4 V-2 H-10Z":"M-12 -3 H12 V3 H-12Z")+'" fill="'+cor+'"/></g>';
+    const cap = "Dólar "+(up?"subindo":down?"caindo":"de lado")+": "+brl.format(a.valor||0)+(up||down?" ("+(p>0?"+":"")+p.toFixed(2).replace(".",",")+"%)":"");
+    return artSVG(g, ceu(id, "#0E3A44", "#061A1F"), cap) + legenda(cap);
+  },
+
+  /* @holerite: o envelope do pagamento */
+  holerite(a){
+    const dif = a.previsto ? (a.valor-a.previsto)/a.previsto*100 : 0, id = "hl"+(++_artId);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    g += '<g transform="translate(160 100)"><rect x="-70" y="-40" width="140" height="80" rx="8" fill="#F4E3C3"/><path d="M-70 -40 L0 8 L70 -40" fill="#E8CFA0" stroke="#C9A66B" stroke-width="2"/>';
+    for(let i=0;i<5;i++) g += '<ellipse cx="'+(-40+i*20)+'" cy="'+(-52-(i%2)*10)+'" rx="10" ry="5" fill="#FFD447" stroke="#C9971A"/>';
+    g += rosto(0,18,14,dif>=0?1:-1,"#6B4A1A")+'</g>';
+    const cap = a.valor ? "Caiu "+money(a.valor)+(a.previsto?" ("+(dif>=0?"+":"")+dif.toFixed(1).replace(".",",")+"% do previsto)":"") : "Seu pagamento";
+    return artSVG(g, ceu(id, "#3A2410", "#140C04"), cap) + legenda(cap);
+  },
+
+  /* @resumo: confete com as cores de cada personalidade */
+  resumo(a){
+    const ls = a.linhas||[]; if(!ls.length) return ""; const id = "rm"+(++_artId);
+    const ent = ls.reduce((t,r)=>t+r.ent,0), sai = ls.reduce((t,r)=>t+r.sai,0);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    ls.forEach((r,i)=>{ const c=(CORES[r.cor]||CORES.cinza), n=Math.min(14, 3+Math.round((r.ent+r.sai)/Math.max(1,ent+sai)*20));
+      for(let k=0;k<n;k++){ const s=hash(r.nome+k), x=20+s%280, y=20+(s>>5)%120, rot=(s>>3)%90;
+        g += k%2 ? '<rect x="'+x+'" y="'+y+'" width="8" height="4" rx="1" fill="'+c.c1+'" transform="rotate('+rot+' '+x+' '+y+')"/>' : '<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="'+c.c2+'"/>'; } });
+    g += '<text x="160" y="96" font-size="26" font-weight="800" fill="#fff" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+(ent-sai>=0?"+":"−")+money(Math.abs(ent-sai)).replace(/\s/g," ")+'</text>';
+    const cap = "Semana: entrou "+money(ent)+", saiu "+money(sai);
+    return artSVG(g, ceu(id, "#0F3326", "#06140F"), cap) + legenda(cap);
+  },
+
+  /* @lembretes: o sininho */
+  lembretes(a){
+    const id = "lb"+(++_artId);
+    let g = '<rect width="'+AW+'" height="'+AH+'" fill="url(#'+id+')"/>';
+    g += '<g transform="translate(160 86) rotate('+(a.feito?0:-12)+')"><path d="M-32 22 Q-30 -30 0 -34 Q30 -30 32 22 Z" fill="#FFD447"/><rect x="-38" y="20" width="76" height="9" rx="4" fill="#E0B12E"/><circle cy="34" r="7" fill="#E0B12E"/><circle cy="-38" r="5" fill="#E0B12E"/></g>';
+    if(!a.feito) g += '<path d="M104 60 q-10 26 0 52 M90 50 q-16 36 0 72 M216 60 q10 26 0 52 M230 50 q16 36 0 72" stroke="#FFE7A3" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>';
+    const cap = a.feito ? "Feito: "+esc(a.texto||"lembrete") : "Dia "+esc(a.dia||"")+": "+esc(a.texto||"lembrete");
+    return artSVG(g, ceu(id, "#2A1B4A", "#110A20"), cap) + legenda(cap);
+  }
+};
+function arteDe(a){ const f = ARTES[a.bot]; if(!f) return ""; try{ const h = f(a); return h ? '<div class="arte">'+h+'</div>' : ""; }catch(e){ console.warn(e); return ""; } }
+
+/* ---------- stories: personalidades (posts das últimas 24h) e robôs ---------- */
+const H24 = 24*3600e3;
+const vistoMap = () => S.cfg.visto || (S.cfg.visto = {});
+function corpoAutoPost(a){
+  const h = autoPost(a), corte = I.dots+'</button></div>';
+  const i = h.indexOf(corte); let c = i>=0 ? h.slice(i+corte.length) : h;
+  return c.replace(/<\/article>\s*$/, "").replace(/<div class="newsline">[\s\S]*?<\/div>/, "");
+}
+function paginasBot(a){
+  const B = BOTS[a.bot], pgs = [], art = arteDe(a);
+  const aviso = a.resumo && a.nts && Date.now()-a.nts < 36*3600e3 ? '<div class="newsline">'+I.alert+'<span>'+esc(a.resumo)+'</span></div>' : '';
+  if(CARROSSEIS[a.bot]){
+    let sls; try{ sls = CARROSSEIS[a.bot](a); }catch(e){ sls = []; }
+    sls.forEach((s,i)=>pgs.push({html: (i===0 ? art + aviso : '') + s, ts:a.nts||a.ts, a}));
+  } else pgs.push({html: art + aviso + corpoAutoPost(a).replace(/^[\s\S]*?(<div class="(?:card|memo))/, "$1"), ts:a.ts, a});
+  if(!pgs.length) pgs.push({html: art || '<div class="slide"><span class="txt">'+esc(B.desc)+'</span></div>', ts:a.ts, a});
+  return pgs;
+}
+function paginaPost(m){
+  const lbl = m.tipo==="transfer"?(m.categoria||"Transferência"):m.tipo==="aplicacao"?"Investimento":m.tipo==="resgate"?"Resgate":(m.categoria||(m.tipo==="entrada"?"Entrada":"Gasto"));
+  const val = '<div class="st-val"><span class="lbl">'+esc(lbl)+'</span><span class="big num '+(m.tipo==="gasto"?"gasto":"")+'">'+(m.tipo==="gasto"?"−":"")+money(m.valor)+'</span>'+(m.legenda?'<span class="st-leg">'+esc(m.legenda)+'</span>':'')+'</div>';
+  return m.foto ? '<div class="st-foto"><img data-foto="'+esc(m.foto)+'" alt="Foto do post">'+val+'</div>' : '<div class="st-foto st-semfoto">'+trails(m)+val+'</div>';
+}
+function storiesDe(){
+  const agora = Date.now(), visto = vistoMap(), out = [];
+  for(const p of S.pers){
+    const ms = S.movs.filter(m=>origem(m)===p.id && agora-(m.criadoEm||m.ts) < H24).sort((x,y)=>(x.criadoEm||x.ts)-(y.criadoEm||y.ts));
+    if(!ms.length) continue;
+    const ult = Math.max(...ms.map(m=>m.criadoEm||m.ts));
+    out.push({k:"p:"+p.id, tipo:"pers", pid:p.id, ult, novo: ult>(visto["p:"+p.id]||0), pgs: ms.map(m=>({html:paginaPost(m), ts:m.criadoEm||m.ts, m}))});
+  }
+  for(const bot of Object.keys(BOTS)){
+    if(!segue(bot)) continue;
+    const as = S.auto.filter(a=>a.bot===bot && !a.oculto && ((a.vivo && ymOf(a.data||today())===ymHoje()) || (!a.vivo && agora-(a.nts||a.ts) < 48*3600e3)))
+      .sort((x,y)=>(x.vivo?1:0)-(y.vivo?1:0) || (x.nts||x.ts)-(y.nts||y.ts));
+    if(!as.length) continue;
+    const ult = Math.max(...as.map(a=>a.nts||a.ts||0));
+    out.push({k:"b:"+bot, tipo:"bot", bot, ult, novo: ult>(visto["b:"+bot]||0) && as.some(a=>notificavel(a) || !a.vivo), autos:as});
+  }
+  return out;
+}
+function bolhasStories(){
+  const st = storiesDe(), por = {}; st.forEach(s=>por[s.k]=s);
+  let h = S.pers.map(p=>{ const s = por["p:"+p.id];
+    return '<button class="story" data-a="'+(s?"story-abrir":"perfil")+'" data-k="p:'+esc(p.id)+'" data-p="'+esc(p.id)+'">'+ring(p, s ? (s.novo?"st-novo":"st-visto") : "")+'<span class="nm">'+esc(p.curto)+'</span><span class="sd num">'+money(saldo(p.id))+'</span></button>'; }).join("");
+  h += '<button class="story" data-a="nova-pers"><span class="ring add"><span class="in">'+I.plus+'</span></span><span class="nm" style="color:var(--fg-2)">Nova</span><span class="sd">&nbsp;</span></button>';
+  const bots = st.filter(s=>s.tipo==="bot").sort((x,y)=>(y.novo?1:0)-(x.novo?1:0) || ORDEM_PAINEL.indexOf(x.bot)-ORDEM_PAINEL.indexOf(y.bot));
+  if(bots.length) h += '<span class="st-div" aria-hidden="true"></span>' + bots.map(s=>{ const B=BOTS[s.bot], c=CORES[B.cor]||CORES.azul;
+    return '<button class="story" data-a="story-abrir" data-k="'+esc(s.k)+'"><span class="ring bring '+(s.novo?"st-novo":"st-visto")+'" style="--c1:'+c.c1+';--c2:'+c.c2+'"><span class="in" style="background:'+c.bg+'">'+botAv(s.bot)+'</span></span><span class="nm">'+esc(B.titulo)+'</span><span class="sd">'+(s.novo?'<i class="st-dot"></i>novo':'&nbsp;')+'</span></button>'; }).join("");
+  return '<div class="stories">'+h+'</div>';
+}
+
+/* visualizador */
+function abrirStory(k){
+  const fila = storiesDe().sort((x,y)=>(x.tipo==="pers"?0:1)-(y.tipo==="pers"?0:1) || (y.novo?1:0)-(x.novo?1:0));
+  let i = fila.findIndex(s=>s.k===k); if(i<0) return;
+  /* começa pelo tocado e segue pelos outros do mesmo tipo */
+  S.story = {fila, i, pg:0, t0:0, gasto:0, pausa:false};
+  for(const s of fila) if(s.tipo==="bot" && !s.pgs) s.pgs = s.autos.flatMap(paginasBot);
+  const el = document.getElementById("story"); el.hidden = false; document.body.style.overflow = "hidden";
+  try{ history.pushState({story:1}, ""); }catch(_){}
+  marcarVisto(); renderStory();
+}
+function marcarVisto(){
+  const s = S.story && S.story.fila[S.story.i]; if(!s) return;
+  vistoMap()[s.k] = Math.max(vistoMap()[s.k]||0, s.ult);
+  if(s.tipo==="bot") for(const a of s.autos){ if(!a.lido){ a.lido = true; salvarAuto(a); } }
+  clearTimeout(S.tVisto); S.tVisto = setTimeout(salvarCfg, 400);
+}
+function fecharStory(doHistorico){
+  if(!S.story) return; S.story = null; cancelAnimationFrame(S.raf);
+  const el = document.getElementById("story"); el.hidden = true; el.innerHTML = ""; document.body.style.overflow = "";
+  if(!doHistorico){ try{ if(history.state && history.state.story) history.back(); }catch(_){} }
+  render();
+}
+function renderStory(){
+  const st = S.story; if(!st) return;
+  const s = st.fila[st.i], pg = s.pgs[st.pg], el = document.getElementById("story");
+  let quem, nome, sub, alvo;
+  if(s.tipo==="pers"){ const p = getP(s.pid); quem = av(p); nome = p.curto; sub = tempoAtras(pg.ts); alvo = 'data-a="story-perfil" data-p="'+esc(s.pid)+'"'; }
+  else { const B = BOTS[s.bot]; quem = botAv(s.bot); nome = B.nome; sub = pg.a && pg.a.vivo ? "ao vivo · atualizado agora" : tempoAtras(pg.ts); alvo = 'data-a="story-bot" data-b="'+s.bot+'"'; }
+  const c = s.tipo==="bot" ? (CORES[BOTS[s.bot].cor]||CORES.azul) : (CORES[(getP(s.pid)||{}).cor]||CORES.azul);
+  el.style.setProperty("--st-bg", c.bg);
+  el.innerHTML = '<div class="st-frame">'
+    + '<div class="st-bars">'+s.pgs.map((_,j)=>'<span><i style="width:'+(j<st.pg?100:0)+'%"></i></span>').join("")+'</div>'
+    + '<div class="st-head"><button class="st-who" '+alvo+'>'+quem+'<span><b>'+esc(nome)+'</b><small>'+esc(sub)+'</small></span></button><button class="ibtn st-x" data-a="story-fechar" aria-label="Fechar">'+I.x+'</button></div>'
+    + '<div class="st-pg'+(s.tipo==="pers"?" st-pg-foto":"")+'">'+pg.html+'</div>'
+    + '<div class="st-foot">'+(s.tipo==="bot"?'<button class="btn" data-a="story-bot" data-b="'+s.bot+'">Ver perfil do robô</button>':'<button class="btn" data-a="story-perfil" data-p="'+esc(s.pid)+'">Ver perfil</button>')+'<span class="st-pos">'+(st.i+1)+'/'+st.fila.length+'</span></div></div>';
+  hidratarFotos(el);
+  const txt = (el.querySelector(".st-pg")||{}).textContent || "";
+  st.dur = Math.max(5000, Math.min(15000, 4000 + txt.length*30)); st.gasto = 0; st.t0 = performance.now();
+  cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(tickStory);
+}
+function tickStory(t){
+  const st = S.story; if(!st) return;
+  if(!st.pausa){ st.gasto += t - (st.ult||t); }
+  st.ult = t;
+  const bar = document.querySelectorAll("#story .st-bars i")[st.pg];
+  if(bar) bar.style.width = Math.min(100, st.gasto/st.dur*100)+"%";
+  if(st.gasto >= st.dur){ st.ult = 0; return passoStory(1); }
+  S.raf = requestAnimationFrame(tickStory);
+}
+function passoStory(d){
+  const st = S.story; if(!st) return;
+  st.ult = 0;
+  const s = st.fila[st.i];
+  if(d>0){ if(st.pg < s.pgs.length-1) st.pg++; else if(st.i < st.fila.length-1){ st.i++; st.pg = 0; marcarVisto(); } else return fecharStory(); }
+  else { if(st.pg>0) st.pg--; else if(st.i>0){ st.i--; st.pg = 0; } }
+  renderStory();
+}
+function tempoAtras(ts){ const m = Math.round((Date.now()-ts)/60000); return m<1?"agora":m<60?"há "+m+" min":m<1440?"há "+Math.round(m/60)+" h":"há "+Math.round(m/1440)+" d"; }
+(function(){
+  const el = document.getElementById("story"); let x0=0, y0=0, t0=0;
+  el.addEventListener("pointerdown", e=>{ if(!S.story) return; x0=e.clientX; y0=e.clientY; t0=Date.now(); S.story.pausa = true; });
+  el.addEventListener("pointerup", e=>{
+    if(!S.story) return; S.story.pausa = false;
+    const dy = e.clientY-y0, dx = e.clientX-x0;
+    if(dy > 90 && Math.abs(dx) < 60) return fecharStory();
+    if(e.target.closest("button,a,input,select,label")) return;
+    const lim = e.target.closest(".chartbox") ? 10 : 30; /* no gráfico, arrastar mostra os valores; tocar passa */
+    if(Date.now()-t0 > 450 || Math.abs(dx) > lim || Math.abs(dy) > 30) return; /* segurou ou arrastou: só pausa */
+    const w = el.getBoundingClientRect().width;
+    passoStory(e.clientX < w*0.3 ? -1 : 1);
+  });
+  el.addEventListener("pointercancel", ()=>{ if(S.story) S.story.pausa = false; });
+  window.addEventListener("popstate", ()=>{ if(S.story) fecharStory(true); });
+  document.addEventListener("keydown", e=>{ if(!S.story) return; if(e.key==="Escape") fecharStory(); else if(e.key==="ArrowRight") passoStory(1); else if(e.key==="ArrowLeft") passoStory(-1); });
+})();
+
 /* ======================================================================
    EVENTOS
    ====================================================================== */
@@ -2778,6 +3129,10 @@ document.addEventListener("click", e=>{
   switch(a){
     case "go": S.view=b.dataset.v; S.edit=null; S.del=null; S.menu=null; S.lform=null; S.importar=false; render(); window.scrollTo(0,0); if(S.view==="notif") marcarLidas(); break;
     case "pedir-apagar": S.del=b.dataset.id; S.menu=null; render(); break;
+    case "story-abrir": abrirStory(b.dataset.k); break;
+    case "story-fechar": fecharStory(); break;
+    case "story-perfil": { const pid=b.dataset.p; fecharStory(); S.perfil=pid; S.view="perfil"; render(); window.scrollTo(0,0); break; }
+    case "story-bot": { const bt=b.dataset.b; fecharStory(); S.voltarBot="home"; S.bot=bt; S.view="bot"; render(); window.scrollTo(0,0); break; }
     case "pedir-desfazer": S.desf=b.dataset.id; S.menu=null; render(); break;
     case "desfazer": desfazerInvest(b.dataset.id); break;
     case "editar-mov": { const m=S.movs.find(x=>x.id===b.dataset.id); S.menu=null; if(m) abrirNova(null,null,m); break; }
