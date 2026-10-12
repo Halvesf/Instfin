@@ -106,6 +106,12 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - **@holerite:** compara cada pagamento com o previsto e oferece atualizar a previsão quando a renda muda.
 - O que tem data anterior ao dia em que você informou os saldos aparece como "já no saldo" e não conta de novo.
 
+## Livre para gastar (esta versão)
+
+- O @meumês abre com **Livre para gastar hoje**: o quanto dá para gastar sem ficar no vermelho em nenhum dia até o fim do mês seguinte e sem mexer na reserva.
+- Slide **Seu saldo dia a dia**: gráfico em degraus com os dias de entrada e o dia mais apertado.
+- Novo passo no assistente: **Este mês já começou** — marque o que já foi pago ou recebido antes de começar a usar o app.
+
 ## Próximas etapas
 
 3. Carteira de FIIs no Pablo Rico e o @fii

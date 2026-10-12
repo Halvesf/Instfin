@@ -419,9 +419,9 @@ const BOTS = {
               quando:"Só posto quando o dólar varia 0,5% ou mais no dia, ou uma vez por semana para você não perder o fio. Importante: variação de 1% ou mais.",
               dados:"Nenhum dado seu. Uso só a cotação pública (AwesomeAPI, com reserva na ExchangeRate-API)."},
   meumes:    {nome:"@meumês", titulo:"Meu mês", cor:"azul", tipo:"pessoal",
-              desc:"Seu mês num carrossel vivo: sobra prevista, entradas, contas e quanto cada personalidade pode gastar.",
+              desc:"Quanto você pode gastar hoje sem ficar no vermelho, seu saldo dia a dia, a sobra do mês e as contas.",
               faz:"Cruzo o seu plano (renda, contas fixas, eventos) com o que você registrou e mostro previsto × realizado. Cada conta tem um botão Registrar.",
-              quando:"Um post vivo por mês, atualizado sempre que você abre o app. No último dia ele fecha e vira o registro do mês. Importante: quando a sobra prevista cai mais de 10% ou o mês vai fechar no negativo.",
+              quando:"Um post vivo por mês, atualizado sempre que você abre o app. No último dia ele fecha e vira o registro do mês. Importante: quando o livre para gastar cai mais de 20% ou quando algum dia vai ficar no vermelho.",
               dados:"Seu plano e suas movimentações. O que eu posto fica só no seu aparelho."},
   contas:    {nome:"@contas", titulo:"Contas", cor:"roxo", tipo:"pessoal",
               desc:"As contas da semana e as parcelas que estão acabando, com o post já pronto para registrar.",
@@ -1054,6 +1054,44 @@ function projecao(n){
   }
   return out;
 }
+/* saldo dia a dia das personalidades livres, de hoje até o fim do mês seguinte */
+function diario(){
+  const ids = livres().map(p=>p.id), hoje = today(), ym = ymHoje(), ymN = somaMes(ym,1);
+  const fim = ymN+"-"+pad(ultimoDia(ymN)), ev = {};
+  const add = (d,p,e) => { ev[d] = ev[d]||{d:0, itens:[]}; ev[d].d += e; ev[d].itens.push({nome:p.nome, e}); };
+  for(const p of itensDoMes(ym)) if(aberto(p)){ const e=efeitoGrupo(p,ids); if(e) add(p.data<hoje?hoje:p.data, p, e); }
+  for(const p of itensDoMes(ymN)) if(!p.incerto && !p.pendente && !movDoPrev(p.key)){ const e=efeitoGrupo(p,ids); if(e) add(p.data, p, e); }
+  let v = ids.reduce((s,id)=>s+saldo(id),0);
+  const pts = []; let min = null;
+  for(let d=hoje; d<=fim; d=addDias(d,1)){
+    const x = ev[d]; if(x) v += x.d;
+    const pt = {data:d, v, itens:x?x.itens:[]};
+    pts.push(pt); if(!min || v<min.v) min = pt;
+  }
+  return {pts, min, fim, livre: Math.max(0, min.v)};
+}
+function linhaDiaria(dd){
+  const pts = dd.pts, w=320, h=170, pl=6, pr=6, pt=24, pb=26, n=pts.length;
+  const vals = pts.map(p=>p.v/100); let mn=Math.min(0,...vals), mx=Math.max(...vals); if(mx===mn) mx=mn+1;
+  const X = i => pl + i*(w-pl-pr)/Math.max(1,n-1), Y = v => pt + (mx-v)/(mx-mn)*(h-pt-pb);
+  let g = '';
+  const iMes = pts.findIndex(p=>p.data.endsWith("-01") && p.data!==pts[0].data);
+  if(iMes>0) g += '<line x1="'+X(iMes).toFixed(1)+'" x2="'+X(iMes).toFixed(1)+'" y1="'+pt+'" y2="'+(h-pb)+'" stroke="#3A3E4A" stroke-dasharray="2 3"/>';
+  if(mn<0) g += '<line x1="'+pl+'" x2="'+(w-pr)+'" y1="'+Y(0).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'" stroke="#FF8A96" stroke-width="1" stroke-dasharray="3 3"/>';
+  /* degraus: o saldo só muda nos dias com movimento */
+  let d = 'M'+X(0).toFixed(1)+' '+Y(vals[0]).toFixed(1);
+  for(let i=1;i<n;i++) d += ' H'+X(i).toFixed(1)+' V'+Y(vals[i]).toFixed(1);
+  g += '<path d="'+d+' V'+(h-pb)+' H'+X(0).toFixed(1)+' Z" fill="#DCE6FF" opacity=".08"/>';
+  g += '<path d="'+d+'" fill="none" stroke="#DCE6FF" stroke-width="2" stroke-linejoin="round"/>';
+  pts.forEach((p,i)=>{ if(p.itens.some(x=>x.e>0)) g += '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="3" fill="#6FDCA8"/>'; });
+  const im = pts.indexOf(dd.min);
+  g += '<circle cx="'+X(im).toFixed(1)+'" cy="'+Y(vals[im]).toFixed(1)+'" r="5" fill="'+(dd.min.v<0?"#FF4D5E":"#FFB547")+'" stroke="#05060A" stroke-width="2"/>';
+  const lx = Math.min(Math.max(X(im), 60), w-60);
+  g += '<text x="'+lx.toFixed(1)+'" y="'+Math.max(12, Y(vals[im])-10).toFixed(1)+'" fill="'+(dd.min.v<0?"#FF8A96":"#FFB547")+'" font-size="11" text-anchor="middle">'+money(dd.min.v).replace(/\s/g," ")+' · '+dataBR(dd.min.data)+'</text>';
+  const lab = (i,t,anc) => '<text x="'+X(i).toFixed(1)+'" y="'+(h-8)+'" fill="#8E94A3" font-size="10" text-anchor="'+anc+'">'+t+'</text>';
+  g += lab(0,"hoje","start") + (iMes>0?lab(iMes,mesCurto(pts[iMes].data.slice(0,7)),"middle"):'') + lab(n-1,dataBR(pts[n-1].data),"end");
+  return '<svg class="lchart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Saldo dia a dia até '+dataBR(pts[n-1].data)+'. Ponto mais baixo: '+money(dd.min.v)+' em '+dataBR(dd.min.data)+'">'+g+'</svg>';
+}
 function recRegular(ym){ /* sobra recorrente do mês (sem eventos), para achar a "virada" */
   const ids = disponiveis().map(p=>p.id);
   return itensDoMes(ym).filter(p=>p.rec && !p.pendente).reduce((s,p)=>s+efeitoGrupo(p,ids),0);
@@ -1073,8 +1111,8 @@ const li = (nome, sub, dir) => '<div class="li"><span class="mid"><b>'+nome+'</b
 function statusPrev(p){
   const m = movDoPrev(p.key), hj = today();
   if(m) return '<span class="chipv up">'+(p.tipo==="entrada"?"recebido":p.tipo==="transfer"?"feito":"pago")+'</span>';
-  if(antesDoApp(p)) return '<span class="chipv flat">já no saldo</span><button class="lnk" data-a="reabrir" data-k="'+esc(p.key)+'">'+(p.tipo==="entrada"?"ainda não recebi":p.tipo==="transfer"?"ainda não transferi":"ainda não paguei")+'</button>';
-  if((PL().abertos||[]).includes(p.key) && !movDoPrev(p.key) && p.data<PL().desde) return (p.data<hj?'<span class="chipv down">atrasado</span>':'<span class="chipv flat">a pagar</span>')+'<button class="lnk" data-a="fechar-antes" data-k="'+esc(p.key)+'">já estava no saldo</button>';
+  if(antesDoApp(p)) return '<span class="chipv flat">'+(p.tipo==="entrada"?"recebido":p.tipo==="transfer"?"feito":"pago")+' antes do app</span><button class="lnk" data-a="reabrir" data-k="'+esc(p.key)+'">'+(p.tipo==="entrada"?"ainda não recebi":p.tipo==="transfer"?"ainda não transferi":"ainda não paguei")+'</button>';
+  if((PL().abertos||[]).includes(p.key) && !movDoPrev(p.key) && p.data<PL().desde) return (p.data<hj?'<span class="chipv down">atrasado</span>':'<span class="chipv flat">a pagar</span>')+'<button class="lnk" data-a="fechar-antes" data-k="'+esc(p.key)+'">já tinha '+(p.tipo==="entrada"?"recebido":"pago")+'</button>';
   if(p.pendente) return '<span class="chipv flat">pendente</span>';
   if(p.incerto) return '<span class="chipv flat">incerto</span>';
   if(p.data<hj) return '<span class="chipv down">atrasado</span>';
@@ -1131,15 +1169,28 @@ function slidesMeuMes(a){
       else alvo.falta += v;
     }
     const internas = prev.filter(p=>p.tipo==="transfer" && ids.includes(p.de) && ids.includes(p.para) && !p.pendente).reduce((t,p)=>t+p.valor,0);
-    s.push(sl("#12233F", '<span class="lbl">Sobra prevista no fim de '+mes+'</span><span class="big num" style="color:'+(fim<0?"#FF8A96":"var(--fg)")+'">'+money(fim)+'</span>'
-      +'<span class="muted" style="margin-top:-6px">= hoje '+money(atual)+' + falta receber '+money(E.falta)+' − falta pagar '+money(G.falta)+'</span>'
+    const sobraMes = E.tot - G.tot, dd = diario(), mn = dd.min;
+    const ehHoje = mn.data===today();
+    const motivo = mn.itens.length ? mn.itens.slice(0,3).map(x=>(x.e>0?"entra ":"sai ")+esc(x.nome)+" "+money(Math.abs(x.e))).join(", ") : "";
+    s.push(sl("#12233F", '<span class="lbl">Livre para gastar hoje</span><span class="big num" style="color:'+(mn.v<0?"#FF8A96":"var(--fg)")+'">'+money(dd.livre)+'</span>'
+      +(mn.v<0
+        ? '<div class="destaque" style="background:rgba(255,77,94,.12)">Atenção: mesmo sem gastar nada, vai faltar <b class="num">'+money(-mn.v)+'</b> em '+dataBR(mn.data)+(motivo?' ('+motivo+')':'')+'. Antecipe uma entrada ou adie uma conta.</div>'
+        : '<span class="muted" style="margin-top:-6px">Sem ficar no vermelho em nenhum dia até '+dataBR(dd.fim)+' e sem mexer na reserva. '
+          +(ehHoje ? (mn.itens.length ? 'Seu dia mais apertado é hoje: depois de pagar o que está pendente ('+motivo+'), sobram '+money(mn.v)+'. Daqui pra frente o que entra cobre o que sai.' : 'Seu dia mais apertado é hoje: daqui pra frente o que entra cobre o que sai.') : 'Seu dia mais apertado: <b>'+dataBR(mn.data)+'</b>, quando o saldo cai para '+money(mn.v)+(motivo?' ('+motivo+')':'')+'.')+'</span>')
+      +'<div class="kv"><span>Saldo hoje</span><b class="num">'+money(atual)+'</b>'
+      +'<span>Sobra do mês (entradas − saídas)</span><b class="num">'+money(sobraMes)+'</b>'
+      +'<span>Saldo previsto em '+ultimoDia(ym)+'/'+ym.slice(5)+'</span><b class="num">'+money(fim)+'</b></div>'
+      +'<span class="muted">O saldo do fim do mês não é todo livre: parte dele paga as contas do começo do mês seguinte, antes do próximo salário. Por isso o livre para gastar olha até '+dataBR(dd.fim)+'. Veja o dia a dia no próximo slide.</span>'));
+    s.push(sl("#0E1A33", '<span class="lbl">Seu saldo dia a dia</span>'+linhaDiaria(dd)
+      +'<span class="muted">Linha: '+esc(livres().map(p=>p.curto).join(" + "))+' juntos, com as contas e entradas do plano. Pontos verdes: dias em que entra dinheiro. Ponto laranja: o dia mais apertado. Gastos do dia a dia que você registrar já entram no saldo de hoje.</span>'));
+    s.push(sl("#12233F", '<span class="lbl">Sobra do mês de '+mes+'</span><span class="big num" style="color:'+(sobraMes<0?"#FF8A96":"var(--fg)")+'">'+money(sobraMes)+'</span>'
+      +'<span class="muted" style="margin-top:-6px">= entradas '+money(E.tot)+' − saídas '+money(G.tot)+'</span>'
       +'<div class="kv"><span>Entradas do mês</span><b class="num">'+money(E.tot)+'</b><span style="padding-left:12px">já caiu</span><b class="num">'+money(E.foi)+'</b><span style="padding-left:12px">falta receber</span><b class="num pos">+'+money(E.falta)+'</b>'
       +'<span style="margin-top:6px">Saídas do mês</span><b class="num" style="margin-top:6px">'+money(G.tot)+'</b><span style="padding-left:12px">já pago</span><b class="num">'+money(G.foi)+'</b>'
-      +(G.antes?'<span style="padding-left:12px">já no saldo (antes de você começar)</span><b class="num">'+money(G.antes)+'</b>':'')
+      +(G.antes?'<span style="padding-left:12px">pago antes de você começar</span><b class="num">'+money(G.antes)+'</b>':'')
       +'<span style="padding-left:12px">falta pagar</span><b class="num">−'+money(G.falta)+'</b></div>'
       +'<span class="muted">Soma '+esc(livres().map(p=>p.curto).join(", ")||"suas personalidades")+'. Reserva e benefícios ficam de fora: o que vai para a reserva conta como saída.'
-      +(internas?' Transferências entre elas ('+money(internas)+') não contam, porque o dinheiro continua seu.':'')
-      +(G.antes?' Se alguma conta "já no saldo" ainda não saiu, toque em "ainda não paguei" na lista de contas.':'')+'</span>'));
+      +(internas?' Transferências entre elas ('+money(internas)+') não contam, porque o dinheiro continua seu.':'')+'</span>'));
   } else {
     const doM = S.movs.filter(m=>ymOf(m.data)===ym);
     const ent = doM.filter(m=>m.tipo==="entrada" && !S.pers.find(p=>p.id===m.conta&&p.beneficio)).reduce((t,m)=>t+m.valor,0);
@@ -1215,9 +1266,9 @@ function slidesHolerite(a){
 /* ---------- @reserva ---------- */
 function slidesReserva(a){
   const rp = getP(PL().reservaPers);
-  if(!rp) return [sl("#2A0B1C", '<span class="lbl">Qual é a sua reserva?</span><span class="txt">Escolha no assistente qual personalidade guarda a reserva de emergência.</span><div><button class="btn pri" data-a="setup" data-s="8">Escolher</button></div>')];
+  if(!rp) return [sl("#2A0B1C", '<span class="lbl">Qual é a sua reserva?</span><span class="txt">Escolha no assistente qual personalidade guarda a reserva de emergência.</span><div><button class="btn pri" data-a="setup" data-s="9">Escolher</button></div>')];
   const c = custoEmergencia(), sd = saldo(rp.id), metaM = S.cfg.reservaMeses||6;
-  if(!c.v) return [sl("#2A0B1C", '<span class="lbl">Reserva: '+money(sd)+'</span><span class="txt">Para calcular os meses cobertos eu preciso do seu custo mensal: cadastre as contas fixas ou defina o custo no assistente.</span><div><button class="btn pri" data-a="setup" data-s="8">Abrir assistente</button></div>')];
+  if(!c.v) return [sl("#2A0B1C", '<span class="lbl">Reserva: '+money(sd)+'</span><span class="txt">Para calcular os meses cobertos eu preciso do seu custo mensal: cadastre as contas fixas ou defina o custo no assistente.</span><div><button class="btn pri" data-a="setup" data-s="9">Abrir assistente</button></div>')];
   const meses = sd/c.v, meta = c.v*metaM, pct = Math.max(0,Math.min(100, sd/meta*100));
   const s = [];
   s.push(sl("#2A0B1C", '<span class="lbl">'+esc(rp.curto)+' cobre</span><span class="big num">'+meses.toFixed(1).replace(".",",")+' <span style="font-size:20px">de '+metaM+' meses</span></span>'
@@ -1285,12 +1336,12 @@ async function robosPlano(){
   let mudou=false; const hoje=today(), ym=ymHoje();
   if(segue("meumes")){
     const {a, novo} = await vivo("meumes", "meumes-"+ym, {ym, data:ym+"-01"});
-    const fim = livres().reduce((t,p)=>t+fimDoMes(p.id,ym),0);
-    if(!novo && a.ultFim!=null){
-      if(fim<0 && a.ultFim>=0){ await avisar(a, "Seu mês vai fechar no negativo: "+money(fim)+".", true); mudou=true; }
-      else if(a.ultFim>0 && fim < a.ultFim*0.9){ await avisar(a, "A sobra prevista de "+MESES[Number(ym.slice(5))-1]+" caiu para "+money(fim)+".", true); mudou=true; }
+    const dd = diario(), lv = dd.livre, falta = dd.min.v<0;
+    if(!novo && a.ultLivre!=null){
+      if(falta && !a.ultFalta){ await avisar(a, "Vai faltar "+money(-dd.min.v)+" em "+dataBR(dd.min.data)+", mesmo sem gastar nada.", true); mudou=true; }
+      else if(!falta && a.ultLivre>0 && lv < a.ultLivre*0.8){ await avisar(a, "Seu livre para gastar caiu para "+money(lv)+". Dia mais apertado: "+dataBR(dd.min.data)+".", true); mudou=true; }
     }
-    if(a.ultFim!==fim){ a.ultFim=fim; await salvarAuto(a); }
+    if(a.ultLivre!==lv || a.ultFalta!==falta){ a.ultLivre=lv; a.ultFalta=falta; await salvarAuto(a); }
     if(novo){ a.resumo="Seu carrossel de "+MESES[Number(ym.slice(5))-1]+" está no ar."; await salvarAuto(a); mudou=true; }
   }
   if(segue("contas")){
@@ -1410,7 +1461,7 @@ function viewAjustes(){
     + '<button data-a="go" data-v="explorar"><span class="av" style="'+vars(null)+'">'+I.search+'</span><span style="color:var(--fg-2)">Explorar robôs</span></button></div>';
   const pl = PL(), cont = g => pl.itens.filter(i=>i.grupo===g).length;
   h += '<div class="sec">Meu plano</div><div class="plist" style="padding-top:6px">'
-    + [[1,"Saldos de hoje",S.pers.length+" carteiras"],[2,"Renda",cont("renda")+" partes do pagamento"],[3,"Benefícios",cont("beneficio")+" recargas"],[4,"Divisão do dinheiro",cont("divisao")+" transferências"],[5,"Contas fixas",cont("conta")+" contas"],[6,"Compromissos futuros",cont("futuro")+" itens"],[7,"Eventos do ano",pl.eventos.length+" eventos"],[8,"Metas","reserva de "+(S.cfg.reservaMeses||0)+" meses"]]
+    + [[1,"Saldos de hoje",S.pers.length+" carteiras"],[2,"Renda",cont("renda")+" partes do pagamento"],[3,"Benefícios",cont("beneficio")+" recargas"],[4,"Divisão do dinheiro",cont("divisao")+" transferências"],[5,"Contas fixas",cont("conta")+" contas"],[6,"Compromissos futuros",cont("futuro")+" itens"],[7,"O que já aconteceu este mês","pago ou recebido antes do app"],[8,"Eventos do ano",pl.eventos.length+" eventos"],[9,"Metas","reserva de "+(S.cfg.reservaMeses||0)+" meses"]]
       .map(([s,t,d])=>'<button data-a="setup" data-s="'+s+'"><span><b style="display:block;font-size:14px">'+t+'</b><span style="font-size:12px;color:var(--fg-3)">'+d+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
   h += '<div class="sec">Reserva de emergência</div>';
@@ -1474,6 +1525,7 @@ const PASSOS = [
   {t:"Divisão do dinheiro", d:"As transferências que você faz todo mês entre personalidades: mesada do Emocional, quanto vai para a reserva."},
   {t:"Contas fixas", d:"Tudo que sai todo mês. Se tem data para acabar (parcelas), diga até quando: o app tira sozinho depois."},
   {t:"Compromissos futuros", d:"Coisas que ainda vão começar, como uma dívida que vence depois. Se a decisão ainda está aberta, marque como pendente."},
+  {t:"Este mês já começou", d:"Marque o que já aconteceu antes de hoje. O que estiver marcado já está dentro do saldo que você informou e não será descontado de novo. Desmarque o que ainda não saiu ou não caiu."},
   {t:"Eventos do ano", d:"Dinheiro que vem ou sai uma vez só: 13º, PPR, férias. O que não é garantido fica marcado como incerto."},
   {t:"Metas", d:"Sua reserva de emergência: em qual personalidade ela fica e quantos meses de vida ela deve cobrir."},
   {t:"Robôs", d:"Escolha quem acompanha o seu dinheiro e como quer ser avisado. Dá para mudar depois no perfil de cada robô."}
@@ -1568,18 +1620,32 @@ function viewSetup(){
     if(!itens.length && !st.form) h += '<div class="field"><span class="help">'+({renda:"Comece pela parte do pagamento que cai primeiro no mês.",beneficio:"Pule este passo se não tiver benefício.",divisao:"Pule se você ainda não faz divisões fixas.",conta:"Inclua até o que parece pequeno: seguro, recarga, assinaturas.",futuro:"Pule se não tiver nada assim."}[grupo])+'</span></div>';
   }
   if(n===7){
+    const corte = PL().desde || today();
+    const ja = itensDoMes(ymHoje()).filter(p=>p.data<corte && !p.pendente && !p.incerto && !movDoPrev(p.key));
+    if(!ja.length) h += '<div class="field"><span class="help">Nada do seu plano tem data antes de hoje neste mês. Pode seguir.</span></div>';
+    else {
+      const abertos = PL().abertos||[];
+      h += '<div class="field" style="padding-bottom:0"><span class="help">Data antes de '+dataBR(corte)+'. Marcado = já aconteceu.</span></div>';
+      h += ja.map(p=>{ const marcado = !abertos.includes(p.key);
+        return '<label class="irow" style="cursor:pointer"><input type="checkbox" class="ja-ck" data-k="'+esc(p.key)+'" '+(marcado?"checked":"")+' style="width:22px;height:22px;accent-color:var(--ok);flex-shrink:0">'
+          +'<span class="mid"><b>'+esc(p.nome)+'</b><span>'+dataBR(p.data)+' · '+esc(descPrev(p))+'</span></span><span class="num">'+(p.tipo==="entrada"?"+":p.tipo==="transfer"?"":"−")+money(p.valor)+'</span></label>'; }).join("");
+      const nAb = ja.filter(p=>abertos.includes(p.key)).length;
+      h += '<div class="field"><span class="help">'+(nAb ? nAb+' '+(nAb===1?'item ficou':'itens ficaram')+' para acontecer ainda: '+(nAb===1?'vai':'vão')+' aparecer como "a pagar" ou "a receber".' : 'Tudo marcado como já acontecido.')+'</span></div>';
+    }
+  }
+  if(n===8){
     const evs = PL().eventos.slice().sort((a,b)=>a.mes<b.mes?-1:1);
     h += evs.map(ev=>'<div class="irow"><span class="mid"><b>'+esc(ev.nome)+'</b><span>'+mesCurto(ev.mes)+' · '+(ev.tipo==="entrada"?"cai no ":"sai do ")+esc(nm(ev.conta))+(ev.incerto?' · incerto':'')+'</span></span><span class="num">'+money(ev.valor)+'</span><button class="ibtn" data-a="wz-ev-edit" data-id="'+esc(ev.id)+'" aria-label="Editar '+esc(ev.nome)+'">'+I.edit+'</button></div>').join("");
     if(st.form && st.form.kind==="evento") h += eventoFormHTML();
     else h += '<div class="quick"><button class="chip" data-a="wz-ev-q" data-q="13a">+ 13º 1ª parcela</button><button class="chip" data-a="wz-ev-q" data-q="13b">+ 13º 2ª parcela</button><button class="chip" data-a="wz-ev-q" data-q="ppr">+ PPR</button><button class="chip" data-a="wz-ev-q" data-q="ferias">+ Férias</button><button class="chip" data-a="wz-ev-q" data-q="">+ Outro</button></div>';
   }
-  if(n===8){
+  if(n===9){
     const c = custoEmergencia();
     h += '<div class="field"><label for="pl-res">Personalidade que guarda a reserva</label><select id="pl-res" class="sel"><option value="">Nenhuma</option>'+S.pers.filter(p=>!p.beneficio).map(p=>'<option value="'+esc(p.id)+'" '+(PL().reservaPers===p.id?"selected":"")+'>'+esc(p.nome)+'</option>').join("")+'</select></div>';
     h += '<div class="field"><label for="aj-meses">Meses de vida que a reserva deve cobrir</label><input id="aj-meses" class="inp num" type="number" inputmode="numeric" min="0" max="36" value="'+esc(S.cfg.reservaMeses)+'" style="max-width:140px"></div>';
     h += '<div class="field"><label for="pl-custo">Custo mensal de emergência</label><input id="pl-custo" class="inp num money" data-scope="plano" data-k="custoEmerg" inputmode="numeric" value="'+money(PL().custoEmerg)+'" style="max-width:200px"><span class="help">Deixe zerado para o app calcular: contas fixas ('+money(c.fixos)+') + média dos gastos variáveis dos últimos 3 meses ('+money(c.variaveis)+') = '+money(c.fixos+c.variaveis)+'. Lembre que, sem emprego, benefícios como o cartão alimentação também param.</span></div>';
   }
-  if(n===9){
+  if(n===10){
     const sug = ["meumes","contas","holerite","reserva","horizonte","resumo","lembrancas","cambio"].filter(k=>BOTS[k]);
     h += sug.map(k=>{ const est = segue(k) ? nivel(k) : "nao";
       return '<div class="fbot"><div class="t">'+botAv(k)+'<span><b>'+esc(BOTS[k].nome)+'</b><small>'+esc(BOTS[k].desc)+'</small></span></div><div class="segs" role="group" aria-label="'+esc(BOTS[k].nome)+'">'
@@ -1984,6 +2050,7 @@ document.addEventListener("click", e=>{
     case "setup": abrirSetup(Number(b.dataset.s||0)); break;
     case "wz-next": (async()=>{ const st=S.setup; if(st.form){ st.err="Salve ou cancele o item aberto antes de continuar."; render(); return; }
         if(Object.keys(st.saldos).length) await aplicarSaldos();
+        else if(st.step===1 && !PL().desde){ PL().desde=today(); await salvarCfg(); }
         if(st.step===PASSOS.length-1){ PL().configurado=true; await salvarCfg(); S.setup=null; S.view="home"; S.month=ymHoje(); render(); window.scrollTo(0,0); toast("Plano configurado"); rodarRobos(); return; }
         st.step++; st.err=""; render(); window.scrollTo(0,0); })(); break;
     case "wz-prev": (async()=>{ const st=S.setup; if(Object.keys(st.saldos).length) await aplicarSaldos(); st.form=null; st.err=""; st.step=Math.max(0,st.step-1); render(); window.scrollTo(0,0); })(); break;
@@ -2081,6 +2148,7 @@ document.addEventListener("change", e=>{
     if(t.id==="f-pend") f.pendente=t.checked; if(t.id==="f-inc") f.incerto=t.checked;
     if(t.id==="f-dur"){ f.dur=t.value; render(); return; }
     if(t.id==="f-tipo"){ f.tipo=t.value; render(); return; } }
+  if(t.classList && t.classList.contains("ja-ck")){ const k=t.dataset.k; PL().abertos=(PL().abertos||[]).filter(x=>x!==k); if(!t.checked) PL().abertos.push(k); salvarCfg(); render(); return; }
   if(t.id==="pl-res"){ PL().reservaPers=t.value||null; salvarCfg(); render(); return; }
   if(S.lform){
     if(t.id==="lf-tipo"){ S.lform.tipo=t.value; render(); return; }
