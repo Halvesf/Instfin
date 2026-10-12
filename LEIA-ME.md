@@ -112,9 +112,16 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - Slide **Seu saldo dia a dia**: gráfico em degraus com os dias de entrada e o dia mais apertado.
 - Novo passo no assistente: **Este mês já começou** — marque o que já foi pago ou recebido antes de começar a usar o app.
 
+## Investimentos (etapa 3)
+
+- Cada personalidade tem **caixa** (dinheiro disponível) e **carteira** (investimentos). Perfil → aba **Carteira**.
+- **Renda fixa** (CDB, LCI, LCA, Tesouro Selic, caixinha): rendimento estimado por dia útil com o CDI do Banco Central, IR regressivo, Aplicar, Resgatar e **Conferir** (digite o saldo do banco e a diferença vira rendimento).
+- **FIIs e ações:** cotas, preço médio, cotação e proventos pela brapi (cole o token em Ajustes → Investimentos), Comprar, Vender e Registrar provento.
+- **Importar da B3:** baixe o extrato de Movimentação (e, se quiser, o de Posição) na Área do Investidor e importe na aba Carteira.
+- Robôs **@rendimentos** e **@fii**. O @reserva passa a contar a carteira, e o @horizonte inclui os rendimentos.
+
 ## Próximas etapas
 
-3. Carteira de FIIs no Pablo Rico e o @fii
 4. Projeção ("e se?"), lista de desejos e @poderdecompra
 
 Fase 2: dados e fotos na nuvem (Supabase), contas, ver o perfil de um amigo e conversar no app.

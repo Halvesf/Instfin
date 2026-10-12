@@ -343,6 +343,24 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 .fbot .t{display:flex;align-items:center;gap:12px}
 .fbot .t span{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fbot .t small{font-size:12px;color:var(--fg-3);line-height:1.4}
+.ptabs2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--line)}
+.ptabs2 button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--fg-3);font-size:14px;font-weight:600}
+.ptabs2 button svg{width:18px;height:18px}
+.ptabs2 button.on{color:var(--fg);border-bottom-color:var(--fg)}
+.cart-sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:14px 16px 6px}
+.cart-sum div{padding:12px;border-radius:12px;background:var(--surface);display:flex;flex-direction:column;gap:4px;min-width:0}
+.cart-sum span{font-size:11px;color:var(--fg-3);text-transform:uppercase;letter-spacing:1px}
+.cart-sum b{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-acts{display:flex;gap:8px;flex-wrap:wrap;padding:8px 16px}
+.cart-acts .btn{flex:1;min-width:110px;font-size:13px}
+.acard{margin:8px 16px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.ahead{display:flex;align-items:center;gap:10px}
+.ahead .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ahead .mid b{font-size:16px}
+.ahead .mid small{font-size:12px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ahead .end{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.three .btn{min-height:40px;font-size:13px;padding:0 8px}
 button.tile{border:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .linkish{border:0;background:transparent;padding:0;text-align:left;color:inherit;font:inherit}
 /* explorar e perfil de robô */
@@ -443,6 +461,16 @@ const BOTS = {
               faz:"Projeto seu saldo mês a mês com base no plano: renda, contas, parcelas que acabam, compromissos futuros, 13º e PPR (incertos ficam separados).",
               quando:"Um post vivo por mês. Importante: quando a projeção mostra algum mês no negativo.",
               dados:"Seu plano e seus saldos. O que eu posto fica só no seu aparelho."},
+  rendimentos:{nome:"@rendimentos", titulo:"Rendimentos", cor:"verde", tipo:"pessoal",
+              desc:"Quanto o seu dinheiro trabalhou no mês: renda fixa, proventos e quanto rende por dia.",
+              faz:"Somo o rendimento estimado da renda fixa (CDI do Banco Central, líquido de IR) e os proventos que você registrou, por aplicação, e projeto 12 meses.",
+              quando:"Um post vivo por mês, que fecha no último dia e vira o histórico do mês.",
+              dados:"Seus investimentos cadastrados. O que eu posto fica só no seu aparelho."},
+  fii:       {nome:"@fii", titulo:"FIIs", cor:"dourado", tipo:"pessoal",
+              desc:"Sua carteira de FIIs e ações: cotação, resultado, proventos do mês e quais contas eles já pagam.",
+              faz:"Busco as cotações e os proventos na brapi, comparo com o seu preço médio e cruzo a renda dos FIIs com as suas contas fixas.",
+              quando:"Um post vivo por mês. Importante: quando a carteira sobe ou cai 3% ou mais no dia.",
+              dados:"Seus tickers e cotas (enviados à brapi só o código do ativo para buscar a cotação). O resto fica no seu aparelho."},
   resumo:    {nome:"@resumo", titulo:"Resumo", cor:"verde", tipo:"pessoal",
               desc:"Toda segunda, conto como foi a semana de cada personalidade.",
               faz:"Somo o que entrou e saiu de cada personalidade na semana anterior e mostro quem mais gastou.",
@@ -472,7 +500,7 @@ const newId = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice
    ESTADO
    ====================================================================== */
 const S = {
-  movs:[], pers:[], auto:[], cfg:{reservaMeses:6},
+  movs:[], pers:[], auto:[], inv:[], cfg:{reservaMeses:6},
   view:"home", perfil:null, month:today().slice(0,7), filtro:"all", busca:"",
   del:null, menu:null, ready:false, form:null, edit:null, crop:null, err:"", dbErro:false, importar:false, lform:null
 };
@@ -491,8 +519,9 @@ const IDB = {
   db:null,
   open(){
     return new Promise((res,rej)=>{
-      const r = indexedDB.open("pablo-financas",3);
+      const r = indexedDB.open("pablo-financas",4);
       r.onupgradeneeded = ()=>{ const d=r.result;
+        if(!d.objectStoreNames.contains("inv")) d.createObjectStore("inv",{keyPath:"id"});
         if(!d.objectStoreNames.contains("auto")) d.createObjectStore("auto",{keyPath:"id"});
         if(!d.objectStoreNames.contains("movs")) d.createObjectStore("movs",{keyPath:"id"});
         if(!d.objectStoreNames.contains("cfg")) d.createObjectStore("cfg");
@@ -588,6 +617,8 @@ const I = {
   edit: sv('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>'),
   wallet: sv('<path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1z"/><path d="M4 7l11-3v3"/><circle cx="16" cy="13.5" r="1.2"/>'),
   shield: sv('<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>'),
+  moedas: sv('<ellipse cx="9" cy="7" rx="6" ry="2.5"/><path d="M3 7v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V7"/><path d="M9 13.5v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4c0-1.4-2.7-2.5-6-2.5"/>'),
+  predio: sv('<path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01"/>'),
   trend: sv('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'),
   heart: sv('<path d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z"/>'),
   dollar: sv('<path d="M12 3v18"/><path d="M16.5 7.5c-.8-1.2-2.4-2-4.5-2-2.6 0-4.3 1.3-4.3 3.1 0 4.4 9 2.4 9 6.8 0 1.9-1.9 3.1-4.7 3.1-2.2 0-3.9-.9-4.8-2.3"/>','stroke-width="2"'),
@@ -606,8 +637,8 @@ function saldo(pid, excl){
   const p = getP(pid); let s = (p&&p.saldoInicial)||0;
   for(const m of S.movs){
     if(excl && m.id===excl) continue;
-    if(m.tipo==="entrada" && m.conta===pid) s+=m.valor;
-    else if(m.tipo==="gasto" && m.conta===pid) s-=m.valor;
+    if((m.tipo==="entrada"||m.tipo==="resgate") && m.conta===pid) s+=m.valor;
+    else if((m.tipo==="gasto"||m.tipo==="aplicacao") && m.conta===pid) s-=m.valor;
     else if(m.tipo==="transfer"){ if(m.para===pid) s+=m.valor; if(m.de===pid) s-=m.valor; }
   }
   return s;
@@ -628,6 +659,8 @@ const usos = pid => S.movs.filter(m=>envolve(m,pid)).length;
 function titulo(m){
   if(m.tipo==="transfer") return nm(m.de)+" → "+nm(m.para);
   if(m.tipo==="entrada") return "Entrada · "+nm(m.conta);
+  if(m.tipo==="aplicacao") return "Investiu · "+nm(m.conta);
+  if(m.tipo==="resgate") return "Resgatou · "+nm(m.conta);
   return "Gasto · "+nm(m.conta);
 }
 const origem = m => m.tipo==="transfer"?m.de:m.conta;
@@ -696,7 +729,7 @@ function viewHome(){
     }
   }
   const list = doMes().map(m=>({k:"m",ts:m.ts,fix:!!m.fixado,o:m}))
-    .concat(S.auto.filter(a=>!a.oculto && segue(a.bot) && BOTS[a.bot] && (a.vivo ? S.month===ymHoje() : ymOf(a.data)===S.month)).map(a=>({k:"a",ts:a.vivo?9e15-["meumes","contas","reserva","horizonte"].indexOf(a.bot):a.ts,fix:false,o:a})))
+    .concat(S.auto.filter(a=>!a.oculto && segue(a.bot) && BOTS[a.bot] && (a.vivo ? S.month===ymHoje() : ymOf(a.data)===S.month)).map(a=>({k:"a",ts:a.vivo?9e15-["meumes","contas","rendimentos","fii","reserva","horizonte"].indexOf(a.bot):a.ts,fix:false,o:a})))
     .sort((a,b)=>(b.fix?1:0)-(a.fix?1:0)||b.ts-a.ts);
   if(!S.ready) h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>';
   else if(!list.length) h += '<div class="empty"><strong>Nada em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil.</div>';
@@ -706,13 +739,16 @@ function viewHome(){
 
 function post(m){
   const o = getP(origem(m));
-  const lbl = m.tipo==="transfer"?(m.categoria||"Transferência"):(m.categoria||(m.tipo==="entrada"?"Entrada":"Gasto"));
+  const lbl = m.tipo==="transfer"?(m.categoria||"Transferência"):m.tipo==="aplicacao"?"Investimento":m.tipo==="resgate"?"Resgate":(m.categoria||(m.tipo==="entrada"?"Entrada":"Gasto"));
   const sub = m.tipo==="transfer" ? "saiu do "+nm(m.de)+", chegou no "+nm(m.para)
+            : m.tipo==="aplicacao" ? "saiu do caixa do "+nm(m.conta)+" para "+(m.ativoNome||"a carteira")
+            : m.tipo==="resgate" ? "voltou de "+(m.ativoNome||"a carteira")+" para o caixa do "+nm(m.conta)
             : m.tipo==="entrada" ? "entrou no "+nm(m.conta) : "saiu do "+nm(m.conta);
   let h = '<article class="post">'
    +'<div class="ph"><button class="who linkish" data-a="perfil" data-p="'+esc(origem(m))+'" aria-label="Abrir perfil de '+esc(nm(origem(m)))+'">'+av(o)+'<span class="meta"><span class="t">'+esc(titulo(m))+(m.fixado?'<span class="pin">FIXADO</span>':'')+'</span><span class="s">'+esc(quando(m))+'</span></span></button>'
    +'<button class="ibtn" data-a="menu" data-id="'+esc(m.id)+'" aria-label="Opções">'+I.dots+'</button></div>';
   if(S.del===m.id) h += '<div class="confirm"><span>Apagar esta movimentação e a foto dela?</span><div class="row"><button class="btn" data-a="menu" data-id="">Cancelar</button><button class="btn danger" data-a="apagar" data-id="'+esc(m.id)+'">Apagar</button></div></div>';
+  else if(S.menu===m.id && (m.tipo==="aplicacao"||m.tipo==="resgate")) h += '<div class="pmenu" style="align-items:center"><span style="flex:1;font-size:13px;color:var(--fg-2);padding:0 6px">Movimentação de investimento: ajuste pela aba Carteira do perfil.</span><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   else if(S.menu===m.id) h += '<div class="pmenu"><button class="btn" data-a="editar-mov" data-id="'+esc(m.id)+'">'+I.edit+'Editar</button><button class="btn" data-a="pedir-apagar" data-id="'+esc(m.id)+'">'+I.trash+'Apagar</button><button class="btn" data-a="menu" data-id="">Fechar</button></div>';
   const val = '<div class="val"><span class="lbl">'+esc(lbl)+'</span><span class="big num '+(m.tipo==="gasto"?"gasto":"")+'">'+(m.tipo==="gasto"?"−":"")+money(m.valor)+'</span><span class="sub">'+esc(sub)+'</span></div>';
   if(m.foto) h += '<div class="pb has-photo"><img class="photo" data-foto="'+esc(m.foto)+'" alt="Foto da movimentação">'+val+'</div>';
@@ -728,7 +764,7 @@ function post(m){
 /* ======================================================================
    ROBÔS: POSTS AUTOMÁTICOS
    ====================================================================== */
-const BOT_ICON = {cambio:()=>I.dollar, lembretes:()=>I.cal, contas:()=>I.cal, resumo:()=>I.chart, lembrancas:()=>I.clock, meumes:()=>I.wallet, holerite:()=>I.list, reserva:()=>I.shield, horizonte:()=>I.trend};
+const BOT_ICON = {rendimentos:()=>I.moedas, fii:()=>I.predio, cambio:()=>I.dollar, lembretes:()=>I.cal, contas:()=>I.cal, resumo:()=>I.chart, lembrancas:()=>I.clock, meumes:()=>I.wallet, holerite:()=>I.list, reserva:()=>I.shield, horizonte:()=>I.trend};
 function botAv(bot){ const c=CORES[BOTS[bot].cor]; return '<span class="bot-av" style="--c1:'+c.c1+';--c2:'+c.c2+';--bgc:'+c.bg+';--fgc:'+c.fg+'" aria-hidden="true">'+BOT_ICON[bot]()+'</span>'; }
 function dataBR(s){ const [y,m,d]=s.split("-").map(Number); return pad(d)+"/"+pad(m); }
 function sparkSVG(vals){
@@ -949,6 +985,7 @@ async function rodarRobos(){
         break; /* no máximo uma lembrança por dia */
       }
     }
+    mudou = await robosInvest() || mudou;
     mudou = await robosPlano() || mudou;
     if(mudou) render();
     /* @câmbio (rede, por último) */
@@ -1036,12 +1073,12 @@ function gastoVariavelMedio(){
   return meses ? Math.round(tot/meses) : 0;
 }
 function projecao(n){
-  const ids = disponiveis().map(p=>p.id), ym0 = ymHoje(), varM = gastoVariavelMedio();
-  let tot = ids.reduce((s,id)=>s+saldo(id),0), inc = 0;
+  const ids = disponiveis().map(p=>p.id), ym0 = ymHoje(), varM = gastoVariavelMedio(), passiva = rendaPassivaMes().tot;
+  let tot = ids.reduce((s,id)=>s+patrimonio(id),0), inc = 0;
   const out = [];
   for(let i=0;i<n;i++){
     const ym = somaMes(ym0,i);
-    let delta = i>0 ? -varM : 0, dInc=0, rec=0;
+    let delta = i>0 ? passiva-varM : 0, dInc=0, rec=0;
     for(const p of itensDoMes(ym)){
       if(p.pendente) continue;
       if(i===0 && (movDoPrev(p.key) || antesDoApp(p))) continue;
@@ -1267,7 +1304,7 @@ function slidesHolerite(a){
 function slidesReserva(a){
   const rp = getP(PL().reservaPers);
   if(!rp) return [sl("#2A0B1C", '<span class="lbl">Qual é a sua reserva?</span><span class="txt">Escolha no assistente qual personalidade guarda a reserva de emergência.</span><div><button class="btn pri" data-a="setup" data-s="9">Escolher</button></div>')];
-  const c = custoEmergencia(), sd = saldo(rp.id), metaM = S.cfg.reservaMeses||6;
+  const c = custoEmergencia(), sd = patrimonio(rp.id), metaM = S.cfg.reservaMeses||6;
   if(!c.v) return [sl("#2A0B1C", '<span class="lbl">Reserva: '+money(sd)+'</span><span class="txt">Para calcular os meses cobertos eu preciso do seu custo mensal: cadastre as contas fixas ou defina o custo no assistente.</span><div><button class="btn pri" data-a="setup" data-s="9">Abrir assistente</button></div>')];
   const meses = sd/c.v, meta = c.v*metaM, pct = Math.max(0,Math.min(100, sd/meta*100));
   const s = [];
@@ -1293,7 +1330,7 @@ function slidesHorizonte(a){
   s.push(sl("#10153A", '<span class="lbl">Saldo previsto · próximos 12 meses</span><span class="big num">'+money(pj[pj.length-1].v)+'</span><span class="muted">em '+mesCurto(pj[pj.length-1].ym)+(temInc?' · com os incertos: '+money(pj[pj.length-1].comInc):'')+'</span>'
     + linhaSVG([{v:pj.map(x=>x.v/100), cor:"#9DB4FF", area:true}].concat(temInc?[{v:pj.map(x=>x.comInc/100), cor:"#F2C14E", tracejado:true}]:[]), pj.map(x=>mesCurto(x.ym)), {aria:"Saldo previsto mês a mês"})
     +'<span class="muted">'+(temInc?'Linha tracejada: somando o que é incerto (como o PPR). ':'')+'Menor ponto: '+money(min.v)+' em '+mesCurto(min.ym)+'. Soma todas as personalidades, menos benefícios. '
-    +(gastoVariavelMedio() ? 'Já desconta '+money(gastoVariavelMedio())+' por mês de gastos do dia a dia (sua média recente).' : 'Ainda não desconta gastos do dia a dia: conforme você registrar, eu uso a sua média e a linha fica mais realista.')+'</span>'));
+    +(rendaPassivaMes().tot ? 'Inclui ~'+money(rendaPassivaMes().tot)+' por mês de rendimentos dos investimentos. ' : '')+(gastoVariavelMedio() ? 'Já desconta '+money(gastoVariavelMedio())+' por mês de gastos do dia a dia (sua média recente).' : 'Ainda não desconta gastos do dia a dia: conforme você registrar, eu uso a sua média e a linha fica mais realista.')+'</span>'));
   const ym = ymHoje(), fimJ = somaMes(ym,11), marcos = [];
   for(const it of PL().itens){
     if(it.fim && it.fim>=ym && it.fim<fimJ) marcos.push({ym:somaMes(it.fim,1), t:'Acaba: '+it.nome, d:it.tipo==="entrada"?'−'+money(it.valor)+'/mês':'+'+money(it.valor)+'/mês livre', pos:it.tipo!=="entrada"});
@@ -1361,7 +1398,7 @@ async function robosPlano(){
     const {a, novo} = await vivo("reserva", "reserva-"+ym, {ym, data:ym+"-01"});
     const rp=getP(PL().reservaPers), c=custoEmergencia();
     if(rp && c.v){
-      const m = Math.floor(saldo(rp.id)/c.v), metaM=S.cfg.reservaMeses||6;
+      const m = Math.floor(patrimonio(rp.id)/c.v), metaM=S.cfg.reservaMeses||6;
       if(!novo && a.ultMeses!=null && m>a.ultMeses){ await avisar(a, m>=metaM ? "Meta batida: sua reserva cobre "+m+" meses." : "Sua reserva agora cobre "+m+" "+(m===1?"mês":"meses")+" de vida.", true); mudou=true; }
       if(a.ultMeses!==m){ a.ultMeses=m; await salvarAuto(a); }
     }
@@ -1398,6 +1435,408 @@ async function robosPlano(){
   return mudou;
 }
 
+/* ======================================================================
+   INVESTIMENTOS: CAIXA × CARTEIRA
+   ====================================================================== */
+const TIPOS_RF = ["CDB","LCI","LCA","Tesouro Selic","Caixinha","Outro"];
+const diasUteis = (a,b) => { let n=0; for(let d=a; d<b; d=addDias(d,1)){ const w=parseD(d).getDay(); if(w!==0 && w!==6) n++; } return n; };
+const cdiAno = () => ((S.cfg.cdiManual>0 ? S.cfg.cdiManual : (S.cfg.cdi && S.cfg.cdi.v) || 0))/100;
+const taxaDia = at => (Math.pow(1+cdiAno(), 1/252)-1) * ((at.pct||100)/100);
+const aliqIR = dias => dias<=180 ? .225 : dias<=360 ? .20 : dias<=720 ? .175 : .15;
+const ativosDe = pid => S.inv.filter(a=>a.pers===pid);
+function valorRF(at, d){
+  const an = (at.anchors||[]).filter(x=>x.d<=d).sort((x,y)=>x.d<y.d?-1:x.d>y.d?1:0);
+  if(!an.length) return 0;
+  const a = an[an.length-1];
+  return Math.round(a.v * Math.pow(1+taxaDia(at), diasUteis(a.d, d)));
+}
+const principalRF = (at, d) => (at.ops||[]).filter(o=>o.d<=d).reduce((t,o)=>t+o.v,0);
+function liquidoRF(at, d){
+  const b = valorRF(at, d); if(at.isento) return b;
+  const rend = Math.max(0, b - principalRF(at, d));
+  const dias = Math.round((parseD(d)-parseD(at.dataAplic||d))/86400e3);
+  return Math.round(b - rend*aliqIR(dias));
+}
+function rendRF(at, a, b){
+  const ini = (at.anchors||[]).map(x=>x.d).sort()[0]; if(!ini) return 0;
+  const de = a<ini ? ini : a; if(b<=de) return 0;
+  const ops = (at.ops||[]).filter(o=>o.d>de && o.d<=b).reduce((t,o)=>t+o.v,0);
+  return valorRF(at,b) - valorRF(at,de) - ops;
+}
+function posicaoRV(at){
+  let q=0, custo=0;
+  for(const o of (at.ops||[]).slice().sort((x,y)=>x.d<y.d?-1:1)){
+    if(o.qtd>0){ custo += o.qtd*o.preco; q += o.qtd; }
+    else if(o.qtd<0 && q>0){ const pm=custo/q; const s=Math.min(q,-o.qtd); custo -= pm*s; q -= s; }
+  }
+  return {cotas:q, pm: q ? Math.round(custo/q) : 0, custo: Math.round(custo)};
+}
+const cot = t => (S.cfg.cot||{})[t] || null;
+function valorRV(at){ const p=posicaoRV(at), c=cot(at.ticker); return Math.round(p.cotas * (c && c.preco ? c.preco : p.pm)); }
+const valorAtivo = at => at.tipo==="rf" ? valorRF(at, today()) : valorRV(at);
+const investidoDe = pid => ativosDe(pid).reduce((t,a)=>t+valorAtivo(a),0);
+const patrimonio = pid => saldo(pid) + investidoDe(pid);
+function proventoPrevisto(at, ym){
+  const c = cot(at.ticker), q = posicaoRV(at).cotas; if(!c || !q) return null;
+  const divs = (c.divs||[]).slice().sort((x,y)=>x.pag<y.pag?1:-1);
+  const doMes = divs.filter(x=>x.pag && x.pag.slice(0,7)===ym);
+  if(doMes.length) return {valor: Math.round(doMes.reduce((t,x)=>t+x.rate,0)*100*q), data: doMes[0].pag, estim:false};
+  if(divs.length) return {valor: Math.round(divs[0].rate*100*q), data: ym+"-15", estim:true};
+  return null;
+}
+const provDoMes = (at, ym) => (at.prov||[]).filter(p=>ymOf(p.d)===ym).reduce((t,p)=>t+p.valor,0);
+function rendaPassivaMes(){
+  let rf=0, fii=0; const hj=today();
+  for(const at of S.inv){
+    if(at.tipo==="rf"){ const v=valorRF(at,hj); const g=v*(Math.pow(1+taxaDia(at),21)-1); rf += at.isento ? g : g*(1-.15); }
+    else { const pp=proventoPrevisto(at, ymHoje()); if(pp) fii += pp.valor; }
+  }
+  return {rf:Math.round(rf), fii:Math.round(fii), tot:Math.round(rf+fii)};
+}
+function rendimentoMes(ym){
+  const ini = ym+"-01", fim = ym===ymHoje() ? today() : ym+"-"+pad(ultimoDia(ym));
+  let rf=0, prov=0;
+  for(const at of S.inv){ if(at.tipo==="rf") rf += rendRF(at, ini, fim); else prov += provDoMes(at, ym); }
+  return {rf:Math.round(rf), prov, tot:Math.round(rf+prov)};
+}
+async function salvarAtivo(at){ if(IDB.db) await IDB.put("inv", JSON.parse(JSON.stringify(at))); S.inv = S.inv.filter(x=>x.id!==at.id).concat([at]); }
+async function apagarAtivo(id){ if(IDB.db) await IDB.del("inv", id); S.inv = S.inv.filter(x=>x.id!==id); }
+async function movInvest(tipo, pid, valor, data, at, legenda){
+  const m = {id:newId(), tipo, conta:pid, valor, data, ts:Date.now(), categoria: tipo==="aplicacao"?"Investimento":"Resgate", legenda:legenda||"", ativoId:at.id, ativoNome:at.nome||at.ticker, conferido:true, fixado:false, criadoEm:Date.now()};
+  if(IDB.db) await IDB.put("movs", m); S.movs = S.movs.concat([m]); return m;
+}
+
+/* ---------- dados de fora: CDI e cotações ---------- */
+async function atualizarCDI(){
+  if(S.cfg.cdi && S.cfg.cdi.chk===today()) return false;
+  try{
+    const j = await comTempo("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json");
+    const x = j && j[0]; const v = x && parseFloat(String(x.valor).replace(",","."));
+    if(v>0){ S.cfg.cdi = {v, d:x.data, chk:today(), fonte:"Banco Central"}; await salvarCfg(); return true; }
+  }catch(_){}
+  return false;
+}
+async function atualizarCotacoes(forcar){
+  const tickers = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
+  const tok = (S.cfg.brapiToken||"").trim();
+  if(!tickers.length || !tok) return {ok:false, motivo: !tok ? "sem token" : "sem ativos"};
+  if(!forcar && Date.now()-(S.cfg.cotTs||0) < 30*60e3) return {ok:true, cache:true};
+  const novo = Object.assign({}, S.cfg.cot||{}); let ok=0, erro="";
+  for(const t of tickers){
+    try{
+      const j = await comTempo("https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?dividends=true&token="+encodeURIComponent(tok), 10000);
+      const r = j && j.results && j.results[0];
+      if(r && r.regularMarketPrice){
+        const cd = (r.dividendsData && r.dividendsData.cashDividends) || [];
+        novo[t] = {preco:Math.round(r.regularMarketPrice*100), varDia:+r.regularMarketChangePercent||0, nome:r.longName||r.shortName||"", ts:Date.now(),
+          divs: cd.filter(x=>x.rate>0).slice(0,24).map(x=>({rate:+x.rate, pag:(x.paymentDate||"").slice(0,10), com:(x.lastDatePrior||"").slice(0,10), label:x.label||""}))};
+        ok++;
+      }
+    }catch(e){ erro = String(e && e.message || e); }
+  }
+  S.cfg.cot = novo; if(ok) S.cfg.cotTs = Date.now(); await salvarCfg();
+  return {ok: ok>0, n:ok, total:tickers.length, erro};
+}
+
+/* ---------- aba Carteira no perfil ---------- */
+function viewCarteira(p){
+  const ym = ymHoje(), ativos = ativosDe(p.id), rf = ativos.filter(a=>a.tipo==="rf"), rv = ativos.filter(a=>a.tipo==="rv");
+  const inv = investidoDe(p.id), caixa = saldo(p.id);
+  let rendM = 0; for(const a of ativos) rendM += a.tipo==="rf" ? rendRF(a, ym+"-01", today()) : provDoMes(a, ym);
+  let h = '<div class="cart-sum"><div><span>Patrimônio</span><b class="num">'+money(caixa+inv)+'</b></div><div><span>Caixa</span><b class="num">'+money(caixa)+'</b></div><div><span>Investido</span><b class="num">'+money(inv)+'</b></div><div><span>Rendeu em '+MESES[Number(ym.slice(5))-1].slice(0,3)+'</span><b class="num pos">+'+money(Math.round(rendM))+'</b></div></div>';
+  h += '<div class="cart-acts"><button class="btn" data-a="inv-rf-novo" data-p="'+esc(p.id)+'">'+I.plus+'Renda fixa</button><button class="btn" data-a="inv-rv-novo" data-p="'+esc(p.id)+'">'+I.plus+'FII ou ação</button><button class="btn" data-a="inv-b3" data-p="'+esc(p.id)+'">Importar da B3</button></div>';
+  if(rf.length){
+    const cdiTxt = cdiAno() ? 'CDI '+(cdiAno()*100).toFixed(2).replace(".",",")+'% a.a.'+(S.cfg.cdiManual>0?' (manual)':S.cfg.cdi?' · Banco Central '+esc(S.cfg.cdi.d):'') : 'CDI não carregado: defina em Ajustes → Investimentos';
+    h += '<div class="sec">Renda fixa <span class="help" style="font-weight:400">· '+cdiTxt+'</span></div>';
+    h += rf.map(a=>{ const b=valorRF(a,today()), l=liquidoRF(a,today()), rm=rendRF(a, ym+"-01", today());
+      const dia = Math.round(b*taxaDia(a)*(a.isento?1:.85));
+      return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.nome)+'</b><small>'+(a.sub?esc(a.sub)+' · ':'')+(a.banco?esc(a.banco)+' · ':'')+(a.pct||100)+'% do CDI'+(a.isento?' · isento de IR':'')+'</small></span><button class="ibtn" data-a="inv-rf-edit" data-id="'+esc(a.id)+'" aria-label="Editar '+esc(a.nome)+'">'+I.edit+'</button></div>'
+        +'<div class="kv"><span>Valor bruto (estimado)</span><b class="num">'+money(b)+'</b>'+(a.isento?'':'<span>Líquido se resgatar hoje</span><b class="num">'+money(l)+'</b>')+'<span>Rendeu este mês</span><b class="num pos">+'+money(Math.round(rm))+'</b><span>Rende por dia útil</span><b class="num">~'+money(dia)+'</b></div>'
+        +'<div class="three"><button class="btn" data-a="inv-rf-op" data-op="aplicar" data-id="'+esc(a.id)+'">Aplicar</button><button class="btn" data-a="inv-rf-op" data-op="resgatar" data-id="'+esc(a.id)+'">Resgatar</button><button class="btn" data-a="inv-rf-conf" data-id="'+esc(a.id)+'">Conferir</button></div></div>'; }).join("");
+  }
+  if(rv.length){
+    const tok = !!(S.cfg.brapiToken||"").trim();
+    h += '<div class="sec">FIIs e ações'+(!tok?' <span class="help" style="font-weight:400">· sem cotação automática: cole o token da brapi em Ajustes</span>':'')+'</div>';
+    h += rv.map(a=>{ const ps=posicaoRV(a), c=cot(a.ticker), v=valorRV(a), res=v-ps.custo, pp=proventoPrevisto(a,ym), rec=provDoMes(a,ym);
+      return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.ticker)+'</b><small>'+ps.cotas+' cotas · PM '+money(ps.pm)+(a.pmEstimado?' (estimado)':'')+'</small></span>'
+        +'<span class="end" style="text-align:right"><b class="num">'+(c?money(c.preco):'—')+'</b>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')+'</span>'
+        +'<button class="ibtn" data-a="inv-rv-edit" data-id="'+esc(a.id)+'" aria-label="Editar '+esc(a.ticker)+'">'+I.edit+'</button></div>'
+        +'<div class="kv"><span>Valor</span><b class="num">'+money(v)+'</b><span>Resultado</span><b class="num '+(res>=0?"pos":"")+'" style="'+(res<0?"color:#FF8A96":"")+'">'+(res>=0?"+":"")+money(res)+(ps.custo?' ('+(res/ps.custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b>'
+        +'<span>Provento de '+MESES[Number(ym.slice(5))-1].slice(0,3)+'</span><b class="num">'+(rec?'<span class="pos">recebido '+money(rec)+'</span>':pp?(pp.estim?'~':'')+money(pp.valor)+' · '+dataBR(pp.data):'—')+'</b></div>'
+        +'<div class="three"><button class="btn" data-a="inv-rv-op" data-op="comprar" data-id="'+esc(a.id)+'">Comprar</button><button class="btn" data-a="inv-rv-op" data-op="vender" data-id="'+esc(a.id)+'">Vender</button><button class="btn" data-a="inv-prov" data-id="'+esc(a.id)+'">Provento</button></div></div>'; }).join("");
+  }
+  if(!ativos.length) h += '<div class="empty"><strong>Nenhum investimento em '+esc(p.curto)+'</strong>Cadastre o CDB, a caixinha ou os FIIs que ficam aqui. O dinheiro que já está no caixa pode ser movido para a carteira na hora do cadastro.</div>';
+  return h;
+}
+
+/* ---------- formulários de investimento ---------- */
+function abrirInv(f){ S.invForm = Object.assign({err:""}, f); renderInv(); document.getElementById("sheet").hidden=false; document.body.style.overflow="hidden"; }
+function fecharInv(){ S.invForm=null; document.getElementById("sheet").hidden=true; document.body.style.overflow=""; }
+const fld = (id,lab,inner,help) => '<div class="field"><label for="'+id+'">'+lab+'</label>'+inner+(help?'<span class="help">'+help+'</span>':'')+'</div>';
+const moneyIn = (id,k,v) => '<input id="'+id+'" class="inp num money" data-scope="inv" data-k="'+k+'" inputmode="numeric" value="'+money(v||0)+'">';
+function renderInv(){
+  const f = S.invForm; if(!f) return;
+  const at = f.id ? S.inv.find(x=>x.id===f.id) : null, p = getP(f.pid || (at&&at.pers));
+  const titulos = {"rf-novo":"Nova renda fixa","rf-edit":"Editar aplicação","rf-op":f.op==="aplicar"?"Aplicar":"Resgatar","rf-conf":"Conferir com o banco","rv-novo":"Novo FII ou ação","rv-op":f.op==="comprar"?"Comprar cotas":"Vender cotas","rv-edit":"Ajustar posição","prov":"Registrar provento","b3":"Importar da B3"};
+  let h = '<div class="sheet-in"><header class="top"><button class="ibtn" data-a="inv-fechar" aria-label="Fechar">'+I.x+'</button><span class="h1">'+titulos[f.modo]+'</span><span style="width:44px;flex-shrink:0"></span></header>';
+  h += '<div class="field" style="padding-top:0"><span class="help">'+(at?esc(at.nome||at.ticker)+' · ':'')+'carteira do '+esc(p?p.curto:"?")+'</span></div>';
+  if(f.modo==="rf-novo" || f.modo==="rf-edit"){
+    h += fld("i-tipo","Tipo",'<select id="i-tipo" class="sel">'+TIPOS_RF.map(t=>'<option '+(f.sub===t?"selected":"")+'>'+t+'</option>').join("")+'</select>');
+    h += fld("i-nome","Nome",'<input id="i-nome" class="inp" maxlength="40" placeholder="Ex.: Cofrinho Nubank, CDB Inter" value="'+esc(f.nome||"")+'">');
+    h += '<div class="two" style="padding:0 16px">'+'<div class="field" style="padding:8px 0"><label for="i-banco">Banco</label><input id="i-banco" class="inp" maxlength="30" value="'+esc(f.banco||"")+'"></div>'
+       + '<div class="field" style="padding:8px 0"><label for="i-pct">% do CDI</label><input id="i-pct" class="inp num" type="number" inputmode="decimal" min="1" max="300" step="0.5" value="'+esc(f.pct||100)+'"></div></div>';
+    h += '<div class="field"><label class="ck-line"><input id="i-isento" type="checkbox" '+(f.isento?"checked":"")+'> Isento de IR (LCI, LCA)</label></div>';
+    h += fld("i-data","Data da aplicação",'<input id="i-data" class="inp" type="date" value="'+esc(f.dataAplic||today())+'">',"Define a faixa do IR: quanto mais tempo aplicado, menor o imposto.");
+    if(f.modo==="rf-novo"){
+      h += fld("i-valor","Valor atual (o que o banco mostra hoje)", moneyIn("i-valor","valor",f.valor));
+      h += fld("i-aplicado","Quanto você aplicou (opcional)", moneyIn("i-aplicado","aplicado",f.aplicado), "Usado para calcular o IR sobre o rendimento. Se não souber, deixe zerado.");
+      h += '<div class="field"><label class="ck-line"><input id="i-mover" type="checkbox" '+(f.mover?"checked":"")+'> Esse dinheiro está no caixa do '+esc(p?p.curto:"")+' ('+money(saldo(f.pid))+'): mover para a carteira</label><span class="help">Marque se o valor já foi contado no saldo da personalidade. Desmarque se é dinheiro que ainda não estava no app.</span></div>';
+    } else h += fld("i-aplicado","Quanto você aplicou no total", moneyIn("i-aplicado","aplicado",f.aplicado));
+  }
+  if(f.modo==="rf-op" || f.modo==="rv-op"){
+    if(f.modo==="rv-op"){
+      h += '<div class="two" style="padding:0 16px"><div class="field" style="padding:8px 0"><label for="i-qtd">Cotas</label><input id="i-qtd" class="inp num" type="number" inputmode="numeric" min="1" step="1" value="'+esc(f.qtd||"")+'"></div>'
+         + '<div class="field" style="padding:8px 0"><label for="i-preco">Preço por cota</label>'+moneyIn("i-preco","preco",f.preco)+'</div></div>';
+      if(f.qtd && f.preco) h += '<div class="field"><span class="help">Total: <b class="num">'+money(f.qtd*f.preco)+'</b></span></div>';
+    } else h += fld("i-valor","Valor", moneyIn("i-valor","valor",f.valor), f.op==="resgatar" && at ? "Disponível (bruto estimado): "+money(valorRF(at,today())) : "");
+    h += fld("i-data","Data",'<input id="i-data" class="inp" type="date" value="'+esc(f.data||today())+'">');
+    const ent = f.op==="aplicar"||f.op==="comprar";
+    h += '<div class="field"><label class="ck-line"><input id="i-mover" type="checkbox" '+(f.mover?"checked":"")+'> '+(ent?'Sai do caixa do '+esc(p?p.curto:"")+' ('+money(saldo(p.id))+')':'Volta para o caixa do '+esc(p?p.curto:""))+'</label></div>';
+  }
+  if(f.modo==="rf-conf"){
+    h += '<div class="field"><span class="help">O app estima o rendimento todo dia. Digite o saldo bruto que o banco mostra agora: a diferença vira rendimento e a estimativa recomeça daqui.</span></div>';
+    h += fld("i-valor","Saldo bruto no banco hoje", moneyIn("i-valor","valor",f.valor), at?"Estimativa do app: "+money(valorRF(at,today())):"");
+  }
+  if(f.modo==="rv-novo"){
+    h += fld("i-ticker","Código (ticker)",'<input id="i-ticker" class="inp" maxlength="8" placeholder="Ex.: MXRF11" style="text-transform:uppercase" value="'+esc(f.ticker||"")+'">');
+    h += '<div class="two" style="padding:0 16px"><div class="field" style="padding:8px 0"><label for="i-qtd">Cotas</label><input id="i-qtd" class="inp num" type="number" inputmode="numeric" min="1" step="1" value="'+esc(f.qtd||"")+'"></div>'
+       + '<div class="field" style="padding:8px 0"><label for="i-preco">Preço médio</label>'+moneyIn("i-preco","preco",f.preco)+'</div></div>';
+    h += '<div class="field"><label class="ck-line"><input id="i-mover" type="checkbox" '+(f.mover?"checked":"")+'> Comprei agora: descontar do caixa do '+esc(p?p.curto:"")+'</label><span class="help">Deixe desmarcado para cotas que você já tinha antes do app.</span></div>';
+  }
+  if(f.modo==="rv-edit"){
+    h += '<div class="two" style="padding:0 16px"><div class="field" style="padding:8px 0"><label for="i-qtd">Cotas hoje</label><input id="i-qtd" class="inp num" type="number" inputmode="numeric" min="0" step="1" value="'+esc(f.qtd||"")+'"></div>'
+       + '<div class="field" style="padding:8px 0"><label for="i-preco">Preço médio</label>'+moneyIn("i-preco","preco",f.preco)+'</div></div>';
+    h += '<div class="field"><span class="help">Ajusta a posição sem mexer no caixa. O histórico de proventos é mantido.</span></div>';
+  }
+  if(f.modo==="prov"){
+    h += fld("i-valor","Valor recebido", moneyIn("i-valor","valor",f.valor), f.estim?"Valor sugerido pelo último rendimento por cota.":"");
+    h += fld("i-data","Data",'<input id="i-data" class="inp" type="date" value="'+esc(f.data||today())+'">',"Entra no caixa do "+esc(p?p.curto:"")+" e vira um post.");
+  }
+  if(f.modo==="b3") h += b3HTML(f, p);
+  if(f.err) h += '<p class="err" role="alert">'+esc(f.err)+'</p>';
+  if(f.modo!=="b3" || f.preview) h += '<div class="field" style="padding-top:14px"><button class="btn pri block" data-a="inv-salvar">'+({"rf-conf":"Salvar saldo","prov":"Registrar provento","b3":"Importar para o "+(p?esc(p.curto):"")}[f.modo]||"Salvar")+'</button>'
+     + ((f.modo==="rf-edit"||f.modo==="rv-edit") ? (f.confirmDel?'<div class="confirm" style="margin:8px 0 0"><span>Apagar da carteira? O dinheiro não volta para o caixa.</span><div class="row"><button class="btn" data-a="inv-del-cancel">Cancelar</button><button class="btn danger" data-a="inv-del">Apagar</button></div></div>':'<button class="btn danger" data-a="inv-del-pedir" style="margin-top:6px">Apagar da carteira</button>') : '')+'</div>';
+  h += '</div>';
+  const sh = document.getElementById("sheet"); const st = sh.scrollTop; sh.innerHTML = h; sh.scrollTop = st;
+}
+async function salvarInv(){
+  const f = S.invForm, hj = today(), at0 = f.id ? S.inv.find(x=>x.id===f.id) : null;
+  const pid = f.pid || (at0 && at0.pers), p = getP(pid);
+  const erro = t => { f.err=t; renderInv(); };
+  try{
+    if(f.modo==="rf-novo"){
+      if(!(f.valor>0)) return erro("Digite o valor atual.");
+      if(f.mover && f.valor>saldo(pid)) return erro("O caixa do "+p.curto+" tem só "+money(saldo(pid))+". Desmarque \"mover\" se esse dinheiro ainda não estava no app.");
+      const at = {id:"a-"+newId(), tipo:"rf", pers:pid, sub:f.sub||"CDB", nome:(f.nome||"").trim()||((f.sub||"CDB")+(f.banco?" "+f.banco:"")), banco:(f.banco||"").trim(), pct:parseFloat(f.pct)||100, isento:!!f.isento,
+        dataAplic:f.dataAplic||hj, ops:[{d:f.dataAplic||hj, v:f.aplicado>0?f.aplicado:f.valor}], anchors:[{d:hj, v:f.valor}], criado:Date.now()};
+      await salvarAtivo(at);
+      if(f.mover) await movInvest("aplicacao", pid, f.valor, hj, at, "Movido para "+at.nome);
+    }
+    else if(f.modo==="rf-edit"){
+      Object.assign(at0, {sub:f.sub, nome:(f.nome||"").trim()||at0.nome, banco:(f.banco||"").trim(), pct:parseFloat(f.pct)||100, isento:!!f.isento, dataAplic:f.dataAplic||at0.dataAplic});
+      if(f.aplicado>0){ const extra = (at0.ops||[]).slice(1).reduce((t,o)=>t+o.v,0); at0.ops[0] = {d:at0.dataAplic, v:f.aplicado-extra}; }
+      await salvarAtivo(at0);
+    }
+    else if(f.modo==="rf-op"){
+      const d=f.data||hj, v=f.valor; if(!(v>0)) return erro("Digite o valor.");
+      const atual = valorRF(at0, d);
+      if(f.op==="resgatar" && v>atual) return erro("O valor estimado é "+money(atual)+". Use Conferir se o banco mostra outro saldo.");
+      if(f.op==="aplicar" && f.mover && v>saldo(pid)) return erro("O caixa do "+p.curto+" tem só "+money(saldo(pid))+".");
+      const sinal = f.op==="aplicar" ? 1 : -1;
+      at0.anchors = (at0.anchors||[]).filter(x=>x.d!==d).concat([{d, v: atual + sinal*v}]);
+      at0.ops = (at0.ops||[]).concat([{d, v: sinal*v}]);
+      await salvarAtivo(at0);
+      if(f.mover) await movInvest(f.op==="aplicar"?"aplicacao":"resgate", pid, v, d, at0);
+    }
+    else if(f.modo==="rf-conf"){
+      if(!(f.valor>0)) return erro("Digite o saldo do banco.");
+      const est = valorRF(at0, hj);
+      at0.anchors = (at0.anchors||[]).filter(x=>x.d!==hj).concat([{d:hj, v:f.valor}]);
+      await salvarAtivo(at0); fecharInv(); render(); toast("Saldo conferido. Diferença: "+(f.valor-est>=0?"+":"")+money(f.valor-est)); rodarRobos(); return;
+    }
+    else if(f.modo==="rv-novo"){
+      const t=(f.ticker||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,""), q=parseInt(f.qtd,10);
+      if(!/^[A-Z]{4}\d{1,2}[A-Z]?$/.test(t)) return erro("Digite um código válido, como MXRF11 ou PETR4.");
+      if(!(q>0)) return erro("Digite a quantidade de cotas.");
+      if(!(f.preco>0)) return erro("Digite o preço médio.");
+      if(f.mover && q*f.preco>saldo(pid)) return erro("O caixa do "+p.curto+" tem só "+money(saldo(pid))+".");
+      let at = S.inv.find(x=>x.tipo==="rv" && x.pers===pid && x.ticker===t);
+      if(at) at.ops = at.ops.concat([{d:hj, qtd:q, preco:f.preco}]);
+      else at = {id:"a-"+newId(), tipo:"rv", pers:pid, ticker:t, nome:t, ops:[{d:hj, qtd:q, preco:f.preco}], prov:[], criado:Date.now()};
+      await salvarAtivo(at);
+      if(f.mover) await movInvest("aplicacao", pid, q*f.preco, hj, at, "Compra de "+q+" cotas de "+t);
+      atualizarCotacoes(true).then(()=>render());
+    }
+    else if(f.modo==="rv-op"){
+      const q=parseInt(f.qtd,10), d=f.data||hj; if(!(q>0)) return erro("Digite a quantidade."); if(!(f.preco>0)) return erro("Digite o preço.");
+      if(f.op==="vender" && q>posicaoRV(at0).cotas) return erro("Você tem "+posicaoRV(at0).cotas+" cotas.");
+      if(f.op==="comprar" && f.mover && q*f.preco>saldo(pid)) return erro("O caixa do "+p.curto+" tem só "+money(saldo(pid))+".");
+      at0.ops = at0.ops.concat([{d, qtd: f.op==="comprar"?q:-q, preco:f.preco}]); await salvarAtivo(at0);
+      if(f.mover) await movInvest(f.op==="comprar"?"aplicacao":"resgate", pid, q*f.preco, d, at0, (f.op==="comprar"?"Compra":"Venda")+" de "+q+" cotas de "+at0.ticker);
+    }
+    else if(f.modo==="rv-edit"){
+      const q=parseInt(f.qtd,10); if(!(q>=0)) return erro("Digite a quantidade.");
+      at0.ops = q ? [{d:hj, qtd:q, preco:f.preco||0}] : []; delete at0.pmEstimado; await salvarAtivo(at0);
+    }
+    else if(f.modo==="prov"){
+      if(!(f.valor>0)) return erro("Digite o valor recebido.");
+      const d = f.data||hj;
+      at0.prov = (at0.prov||[]).concat([{d, valor:f.valor}]); await salvarAtivo(at0);
+      const m = {id:newId(), tipo:"entrada", conta:pid, valor:f.valor, data:d, ts:new Date(parseD(d).getTime()+12*3600e3).getTime(), categoria:"Rendimento", legenda:"Provento de "+at0.ticker, ativoId:at0.id, prevGrupo:"rendimento", conferido:true, fixado:false, criadoEm:Date.now()};
+      if(IDB.db) await IDB.put("movs", m); S.movs = S.movs.concat([m]);
+    }
+    else if(f.modo==="b3"){ await aplicarB3(f, pid); }
+    fecharInv(); render(); toast("Salvo"); rodarRobos();
+  }catch(e){ console.warn(e); erro("Não deu para salvar. Tente de novo."); }
+}
+
+/* ---------- importação da B3 (Área do Investidor) ---------- */
+function carregarXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=()=>res(); s.onerror=()=>rej(new Error("Não consegui carregar o leitor de planilhas. Confira a internet.")); document.head.appendChild(s); });
+}
+const normTxt = s => String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+function numBR(v){ if(typeof v==="number") return v; const s=String(v||"").replace(/[R$\s]/g,""); if(!s||s==="-") return 0; return parseFloat(s.includes(",")?s.replace(/\./g,"").replace(",","."):s)||0; }
+function dataB3(v){
+  if(typeof v==="number"){ const d=new Date(Math.round((v-25569)*86400e3)); return d.toISOString().slice(0,10); }
+  const m = String(v||"").match(/(\d{2})\/(\d{2})\/(\d{4})/); return m ? m[3]+"-"+m[2]+"-"+m[1] : "";
+}
+const tickerDe = s => { const t = String(s||"").split(" - ")[0].trim().toUpperCase(); return /^[A-Z]{4}\d{1,2}[A-Z]?$/.test(t) ? t : ""; };
+async function lerB3(file){
+  await carregarXLSX();
+  const wb = XLSX.read(await file.arrayBuffer(), {type:"array"});
+  const res = {}, tipos = new Set();
+  const get = t => res[t] = res[t] || {ops:[], prov:[], pos:null, fech:0};
+  for(const nome of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[nome], {header:1, raw:true, defval:""});
+    const hi = rows.findIndex(r=>r.some(c=>/produto|codigo de negociacao/.test(normTxt(c))) && r.some(c=>/quantidade/.test(normTxt(c))));
+    if(hi<0) continue;
+    const H = rows[hi].map(normTxt), col = re => H.findIndex(x=>re.test(x));
+    const cES=col(/^entrada\/saida/), cData=col(/^data$/), cMov=col(/^movimentacao/), cProd=col(/^produto/), cCod=col(/codigo de negociacao/), cQtd=col(/^quantidade$/), cPU=col(/preco unitario/), cVal=col(/valor da operacao/), cFech=col(/preco de fechamento/);
+    const movimentacao = cMov>=0 && cES>=0;
+    for(const r of rows.slice(hi+1)){
+      const t = tickerDe(cCod>=0 && r[cCod] ? r[cCod] : r[cProd]); if(!t) continue;
+      if(movimentacao){
+        tipos.add("movimentação");
+        const es = normTxt(r[cES]), mv = normTxt(r[cMov]), d = dataB3(r[cData]), q = Math.abs(numBR(r[cQtd])), pu = Math.round(numBR(r[cPU])*100), val = Math.round(Math.abs(numBR(r[cVal]))*100);
+        const cred = es.startsWith("cred");
+        if(/liquidacao|compra|venda/.test(mv) && q) get(t).ops.push({d, qtd: cred?q:-q, preco:pu || (q?Math.round(val/q):0)});
+        else if(/bonificacao|desdobro|fracao/.test(mv) && q && /bonif|desdob/.test(mv)) get(t).ops.push({d, qtd: cred?q:-q, preco:0});
+        else if(/rendimento|dividendo|juros sobre capital/.test(mv) && cred && val) get(t).prov.push({d, valor:val});
+      } else if(cQtd>=0){
+        tipos.add("posição");
+        const x = get(t); x.pos = (x.pos||0) + numBR(r[cQtd]); if(cFech>=0) x.fech = Math.round(numBR(r[cFech])*100);
+      }
+    }
+  }
+  return {res, tipos:[...tipos]};
+}
+function b3HTML(f, p){
+  let h = '<div class="field"><span class="help">Na Área do Investidor da B3 (investidor.b3.com.br), baixe em Excel o extrato de <b>Movimentação</b> (traz compras, preço e proventos) e, se quiser, o de <b>Posição</b> (confere as cotas de hoje). Pode importar os dois, um de cada vez.</span></div>';
+  h += '<div class="field"><label class="file" for="b3-arq">'+I.list+'<span>'+(f.arquivo?esc(f.arquivo)+' · trocar':'Escolher planilha da B3 (.xlsx ou .csv)')+'</span></label><input id="b3-arq" type="file" accept=".xlsx,.xls,.csv" hidden></div>';
+  if(f.lendo) h += '<div class="field"><span class="help">Lendo a planilha…</span></div>';
+  if(f.preview){
+    const ent = Object.entries(f.preview.res);
+    if(!ent.length) h += '<p class="err">Não encontrei FIIs ou ações nessa planilha. Confira se é o extrato de Movimentação ou Posição da B3.</p>';
+    else {
+      h += '<div class="field" style="padding-bottom:0"><span class="help">Tipo de arquivo: '+esc(f.preview.tipos.join(" e "))+'. O que vai ser importado:</span></div>';
+      h += ent.map(([t,x])=>{ const ps=posicaoRV({ops:x.ops}); const q = x.ops.length ? ps.cotas : x.pos;
+        return '<div class="irow"><span class="mid"><b>'+t+'</b><span>'+(q||0)+' cotas'+(x.ops.length?' · PM '+money(ps.pm):x.fech?' · fechamento '+money(x.fech):'')+(x.prov.length?' · '+x.prov.length+' proventos ('+money(x.prov.reduce((s,y)=>s+y.valor,0))+')':'')+'</span></span></div>'; }).join("");
+      h += '<div class="field"><span class="help">'+(f.preview.tipos.includes("movimentação")?'Cada ticker importado da Movimentação substitui as compras e proventos que estavam no app para ele. ':'')+'Nada sai do caixa: são cotas que você já tem.</span></div>';
+    }
+  }
+  return h;
+}
+async function aplicarB3(f, pid){
+  for(const [t,x] of Object.entries(f.preview.res)){
+    let at = S.inv.find(a=>a.tipo==="rv" && a.pers===pid && a.ticker===t);
+    if(!at) at = {id:"a-"+newId(), tipo:"rv", pers:pid, ticker:t, nome:t, ops:[], prov:[], criado:Date.now()};
+    if(x.ops.length){ at.ops = x.ops.filter(o=>o.d).sort((a,b)=>a.d<b.d?-1:1); at.prov = x.prov; delete at.pmEstimado; }
+    else if(x.pos!=null){
+      const q = posicaoRV(at).cotas, dif = Math.round(x.pos - q);
+      if(dif){ at.ops = at.ops.concat([{d:today(), qtd:dif, preco: dif>0 ? (x.fech||0) : posicaoRV(at).pm}]); if(!q) at.pmEstimado = true; }
+    }
+    if(posicaoRV(at).cotas>0 || at.prov.length) await salvarAtivo(at);
+  }
+  atualizarCotacoes(true).then(()=>render());
+}
+
+/* ---------- @rendimentos e @fii ---------- */
+function slidesRendimentos(a){
+  if(!S.inv.length) return [sl("#0A2219", '<span class="lbl">Nenhum investimento cadastrado</span><span class="txt">Cadastre seus investimentos na aba Carteira do perfil de cada personalidade.</span><div><button class="btn pri" data-a="perfil" data-p="'+esc(PL().reservaPers||(S.pers[0]||{}).id)+'">Abrir perfis</button></div>')];
+  const ym = a.ym, r = rendimentoMes(ym), rp = rendaPassivaMes(), mes = MESES[Number(ym.slice(5))-1];
+  const diaRF = Math.round(S.inv.filter(x=>x.tipo==="rf").reduce((t,x)=>t+valorRF(x,today())*taxaDia(x)*(x.isento?1:.85),0));
+  const s = [];
+  s.push(sl("#0A2219", '<span class="lbl">Seu dinheiro trabalhou em '+mes+'</span><span class="big num pos">+'+money(r.tot)+'</span>'
+    +'<div class="kv"><span>Renda fixa'+(a.vivo?' (até hoje, estimado)':'')+'</span><b class="num">+'+money(r.rf)+'</b><span>Proventos recebidos</span><b class="num">+'+money(r.prov)+'</b>'
+    +'<span>Rende por dia útil agora</span><b class="num">~'+money(diaRF)+'</b><span>Renda passiva estimada por mês</span><b class="num">~'+money(rp.tot)+'</b></div>'
+    +'<span class="muted">Renda fixa líquida de IR estimado; confira com o banco uma vez por mês para ajustar.</span>'));
+  s.push(sl("#0F3326", '<span class="lbl">Por aplicação</span><div class="lst">'+S.inv.map(x=>{ const rm = x.tipo==="rf" ? rendRF(x, ym+"-01", ym===ymHoje()?today():ym+"-"+pad(ultimoDia(ym))) : provDoMes(x, ym);
+      return li(esc(x.nome||x.ticker), esc(nm(x.pers))+' · '+(x.tipo==="rf"?(x.pct||100)+'% CDI':posicaoRV(x).cotas+' cotas'), '<span class="num pos">+'+money(Math.round(rm))+'</span><span class="num" style="color:var(--fg-3)">'+money(valorAtivo(x))+'</span>'); }).join("")+'</div>'));
+  const tot = S.inv.reduce((t,x)=>t+valorAtivo(x),0), ano = rp.tot*12;
+  s.push(sl("#0A2219", '<span class="lbl">Se nada mudar, em 12 meses</span><span class="big num pos">+'+money(ano)+'</span>'
+    +'<div class="kv"><span>Investido hoje</span><b class="num">'+money(tot)+'</b><span>Renda fixa (12 meses)</span><b class="num">~'+money(rp.rf*12)+'</b><span>Proventos (12 meses)</span><b class="num">~'+money(rp.fii*12)+'</b></div>'
+    +'<span class="muted">Sem contar novos aportes. Usa o CDI e o último provento de hoje; os dois mudam com o tempo.</span>'));
+  return s;
+}
+function slidesFII(a){
+  const rv = S.inv.filter(x=>x.tipo==="rv" && posicaoRV(x).cotas>0);
+  if(!rv.length) return [sl("#1F1408", '<span class="lbl">Nenhum FII cadastrado</span><span class="txt">Cadastre seus FIIs ou importe da B3 na aba Carteira do Pablo Rico.</span><div><button class="btn pri" data-a="perfil" data-p="'+esc(getP("rico")?"rico":(S.pers[0]||{}).id)+'">Abrir carteira</button></div>')];
+  const ym = a.ym, s = [];
+  let val=0, custo=0, varPond=0;
+  for(const x of rv){ const v=valorRV(x), c=cot(x.ticker); val+=v; custo+=posicaoRV(x).custo; if(c) varPond += v*c.varDia; }
+  const varDia = val ? varPond/val : 0, res = val-custo;
+  const semCot = rv.some(x=>!cot(x.ticker));
+  s.push(sl("#1F1408", '<span class="lbl">Sua carteira de FIIs e ações</span><span class="big num">'+money(val)+'</span>'
+    +'<span class="chipv '+(varDia>0.05?"up":varDia<-0.05?"down":"flat")+'">'+(varDia>0?"▲ +":varDia<0?"▼ ":"■ ")+varDia.toFixed(2).replace(".",",")+'% hoje</span>'
+    +'<div class="kv"><span>Custo (preço médio)</span><b class="num">'+money(custo)+'</b><span>Resultado</span><b class="num" style="color:'+(res>=0?"var(--ok)":"#FF8A96")+'">'+(res>=0?"+":"")+money(res)+(custo?' ('+(res/custo*100).toFixed(1).replace(".",",")+'%)':'')+'</b></div>'
+    +'<div class="lst">'+rv.map(x=>{ const c=cot(x.ticker); return li(esc(x.ticker), posicaoRV(x).cotas+' cotas', '<span class="num">'+money(valorRV(x))+'</span>'+(c?'<span class="chipv '+(c.varDia>0.05?"up":c.varDia<-0.05?"down":"flat")+'">'+(c.varDia>0?"+":"")+c.varDia.toFixed(2).replace(".",",")+'%</span>':'')); }).join("")+'</div>'
+    +(semCot?'<span class="muted">Sem cotação para alguns ativos: cole o token da brapi em Ajustes → Investimentos. Enquanto isso, uso o preço médio.</span>':'')));
+  let prevTot=0;
+  s.push(sl("#2A1608", '<span class="lbl">Proventos de '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+rv.map(x=>{ const rec=provDoMes(x,ym), pp=proventoPrevisto(x,ym); prevTot += rec || (pp?pp.valor:0);
+      return li(esc(x.ticker), rec?'recebido':pp?((pp.estim?'estimado pelo último · ':'')+'pagamento '+dataBR(pp.data)):'sem dados de provento',
+        '<span class="num">'+money(rec||(pp?pp.valor:0))+'</span>'+(rec?'<span class="chipv up">recebido</span>':(a.vivo?'<button class="btn mini" data-a="inv-prov" data-id="'+esc(x.id)+'">Registrar</button>':''))); }).join("")+'</div>'
+    +'<span class="muted">Total do mês: '+money(prevTot)+'. Quando cair na conta, toque em Registrar: o valor entra no caixa e vira post.</span>'));
+  const renda = rendaPassivaMes().fii;
+  const contas = itensDoMes(ymHoje()).filter(p=>p.tipo==="gasto" && p.grupo==="conta").sort((x,y)=>x.valor-y.valor);
+  if(contas.length && renda>0){
+    let acum=0; const cobre=[]; let prox=null;
+    for(const c of contas){ if(acum+c.valor<=renda){ acum+=c.valor; cobre.push(c); } else { prox=c; break; } }
+    let dica='';
+    if(prox){ const falta = acum+prox.valor-renda; const melhor = rv.map(x=>{ const c=cot(x.ticker), pp=proventoPrevisto(x,ymHoje()), q=posicaoRV(x).cotas; return c&&pp&&q ? {t:x.ticker, porCota:pp.valor/q, preco:c.preco} : null; }).filter(Boolean).sort((x,y)=>y.porCota/y.preco-x.porCota/x.preco)[0];
+      dica = '<div class="destaque">Para pagar também <b>'+esc(prox.nome)+'</b> faltam <b class="num">'+money(falta)+'</b> por mês'+(melhor?': cerca de <b>'+Math.ceil(falta/melhor.porCota)+' cotas de '+melhor.t+'</b> ('+money(Math.ceil(falta/melhor.porCota)*melhor.preco)+').':'.')+'</div>'; }
+    s.push(sl("#1F1408", '<span class="lbl">Seus FIIs já pagam</span><span class="big num pos">'+money(renda)+'<span style="font-size:16px;color:var(--fg-2)"> /mês</span></span>'
+      +(cobre.length?'<div class="lst">'+cobre.map(c=>li('✓ '+esc(c.nome), 'conta fixa', '<span class="num">'+money(c.valor)+'</span>')).join("")+'</div>':'<span class="txt" style="font-size:14px">Ainda não cobrem nenhuma conta fixa inteira. Cada provento aproxima.</span>')
+      +dica));
+  }
+  return s;
+}
+CARROSSEIS.rendimentos = slidesRendimentos; CARROSSEIS.fii = slidesFII;
+async function robosInvest(){
+  let mudou=false; const ym=ymHoje();
+  await atualizarCDI();
+  if(S.inv.some(x=>x.tipo==="rv")){ const r = await atualizarCotacoes(false); if(r && r.ok && !r.cache) mudou=true; }
+  if(segue("rendimentos")){ const {novo} = await vivo("rendimentos","rendimentos-"+ym,{ym, data:ym+"-01"}); if(novo) mudou=true; }
+  if(segue("fii")){
+    const {a, novo} = await vivo("fii","fii-"+ym,{ym, data:ym+"-01"}); if(novo) mudou=true;
+    const rv = S.inv.filter(x=>x.tipo==="rv" && posicaoRV(x).cotas>0);
+    let val=0, vp=0; for(const x of rv){ const v=valorRV(x), c=cot(x.ticker); val+=v; if(c) vp+=v*c.varDia; }
+    const vd = val ? vp/val : 0;
+    if(Math.abs(vd)>=3 && S.cfg.fiiAlerta!==today()){ S.cfg.fiiAlerta=today(); await salvarCfg(); await avisar(a, "Sua carteira de FIIs "+(vd>0?"subiu":"caiu")+" "+Math.abs(vd).toFixed(1).replace(".",",")+"% hoje.", true); mudou=true; }
+  }
+  return mudou;
+}
+
 function viewPerfil(){
   if(!getP(S.perfil)) S.perfil = S.pers[0] && S.pers[0].id;
   const p = getP(S.perfil);
@@ -1406,16 +1845,19 @@ function viewPerfil(){
     +'<button class="ptab new" data-a="nova-pers">'+'+ Nova'+'</button></div>';
   if(!p) return h+'<div class="empty"><strong>Nenhuma personalidade</strong>Crie a primeira para começar.</div>';
   const mes = doMes().filter(m=>envolve(m,p.id)).sort((a,b)=>b.ts-a.ts), f = fluxo(p.id, mes);
-  h += '<div class="phead">'+ring(p)+'<div class="stats"><div><span class="num">'+money(saldo(p.id))+'</span><span>saldo</span></div><div><span class="num">'+money(f.ent)+'</span><span>entrou</span></div><div><span class="num">'+money(f.sai)+'</span><span>saiu</span></div></div></div>';
+  h += '<div class="phead">'+ring(p)+'<div class="stats"><div><span class="num">'+money(ativosDe(p.id).length?patrimonio(p.id):saldo(p.id))+'</span><span>'+(ativosDe(p.id).length?'patrimônio':'saldo')+'</span></div><div><span class="num">'+money(f.ent)+'</span><span>entrou</span></div><div><span class="num">'+money(f.sai)+'</span><span>saiu</span></div></div></div>';
   h += '<div class="bio"><b>'+esc(p.nome)+'</b>'+(p.bio?'<span>'+esc(p.bio)+'</span>':'')+'</div>';
   if(p.limite>0){
     const g=gastosMes(p.id), pctR=Math.round(g/p.limite*100), pct=Math.min(100,pctR);
     h += '<div class="meter"><div class="row"><span>Limite do mês: '+money(g)+' de '+money(p.limite)+'</span><span class="num">'+pctR+'%</span></div><div class="bar" role="img" aria-label="'+pctR+'% do limite usado"><i style="width:'+pct+'%;background:'+corOf(p).c1+'"></i></div></div>';
   }
   h += '<div class="pactions"><button class="btn" data-a="editar-pers" data-p="'+esc(p.id)+'">'+I.edit+'Editar perfil</button><button class="btn" data-a="nova" data-p="'+esc(p.id)+'">'+I.plus+'Novo post</button></div>';
+  const tab = S.ptab||"posts", nInv = ativosDe(p.id).length;
+  h += '<div class="ptabs2" role="tablist"><button role="tab" aria-selected="'+(tab==="posts")+'" class="'+(tab==="posts"?"on":"")+'" data-a="ptab" data-t="posts">'+I.list+'Posts</button><button role="tab" aria-selected="'+(tab==="carteira")+'" class="'+(tab==="carteira"?"on":"")+'" data-a="ptab" data-t="carteira">'+I.moedas+'Carteira'+(nInv?' <span class="num" style="color:var(--fg-3)">'+nInv+'</span>':'')+'</button></div>';
+  if(tab==="carteira") return h + viewCarteira(p);
   if(!mes.length) h += '<div class="empty"><strong>Sem posts em '+mesNome(S.month)+'</strong>Tudo que entrar, sair ou passar pelo '+esc(p.curto)+' aparece aqui como foto.</div>';
   else h += '<div class="grid">'+mes.map(m=>{
-    const entra = m.tipo==="entrada"||(m.tipo==="transfer"&&m.para===p.id);
+    const entra = m.tipo==="entrada"||m.tipo==="resgate"||(m.tipo==="transfer"&&m.para===p.id);
     const c = m.tipo==="transfer" ? (m.para===p.id?"De "+nm(m.de):"Para "+nm(m.para)) : (m.categoria||m.tipo);
     const col = corOf(p);
     const st = m.foto ? '' : (entra?' style="background:'+col.bg+'"':'');
@@ -1464,6 +1906,9 @@ function viewAjustes(){
     + [[1,"Saldos de hoje",S.pers.length+" carteiras"],[2,"Renda",cont("renda")+" partes do pagamento"],[3,"Benefícios",cont("beneficio")+" recargas"],[4,"Divisão do dinheiro",cont("divisao")+" transferências"],[5,"Contas fixas",cont("conta")+" contas"],[6,"Compromissos futuros",cont("futuro")+" itens"],[7,"O que já aconteceu este mês","pago ou recebido antes do app"],[8,"Eventos do ano",pl.eventos.length+" eventos"],[9,"Metas","reserva de "+(S.cfg.reservaMeses||0)+" meses"]]
       .map(([s,t,d])=>'<button data-a="setup" data-s="'+s+'"><span><b style="display:block;font-size:14px">'+t+'</b><span style="font-size:12px;color:var(--fg-3)">'+d+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
+  h += '<div class="sec">Investimentos</div>';
+  h += '<div class="field"><label for="aj-token">Token da brapi (cotações e proventos)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Fica guardado só neste aparelho. O app envia à brapi apenas o código dos seus ativos.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span><button class="btn" data-a="inv-atualizar" style="align-self:flex-start">Atualizar cotações agora</button></div>';
+  h += '<div class="field"><label for="aj-cdi">CDI anual manual (opcional)</label><input id="aj-cdi" class="inp num" type="number" inputmode="decimal" step="0.01" min="0" max="50" placeholder="Automático" value="'+(S.cfg.cdiManual||"")+'" style="max-width:160px"><span class="help">'+(S.cfg.cdi?'Banco Central: '+String(S.cfg.cdi.v).replace(".",",")+'% a.a. em '+esc(S.cfg.cdi.d)+'. ':'Ainda não consegui buscar o CDI do Banco Central. ')+'Preencha só se quiser usar outro valor.</span></div>';
   h += '<div class="sec">Reserva de emergência</div>';
   h += '<div class="field"><label for="aj-meses">Quantos meses de gastos ficam intocáveis</label><input id="aj-meses" class="inp num" type="number" inputmode="numeric" min="0" max="36" step="1" value="'+esc(S.cfg.reservaMeses)+'" style="max-width:140px"><span class="help">Usado pela aba de Projeção e pelo poder de compra, que chegam nas próximas etapas. Cada pessoa define o seu.</span></div>';
   let ult = null; try{ ult = localStorage.getItem("ultimoBackup"); }catch(_){}
@@ -1646,7 +2091,7 @@ function viewSetup(){
     h += '<div class="field"><label for="pl-custo">Custo mensal de emergência</label><input id="pl-custo" class="inp num money" data-scope="plano" data-k="custoEmerg" inputmode="numeric" value="'+money(PL().custoEmerg)+'" style="max-width:200px"><span class="help">Deixe zerado para o app calcular: contas fixas ('+money(c.fixos)+') + média dos gastos variáveis dos últimos 3 meses ('+money(c.variaveis)+') = '+money(c.fixos+c.variaveis)+'. Lembre que, sem emprego, benefícios como o cartão alimentação também param.</span></div>';
   }
   if(n===10){
-    const sug = ["meumes","contas","holerite","reserva","horizonte","resumo","lembrancas","cambio"].filter(k=>BOTS[k]);
+    const sug = ["meumes","contas","holerite","reserva","horizonte","rendimentos","fii","resumo","lembrancas","cambio"].filter(k=>BOTS[k]);
     h += sug.map(k=>{ const est = segue(k) ? nivel(k) : "nao";
       return '<div class="fbot"><div class="t">'+botAv(k)+'<span><b>'+esc(BOTS[k].nome)+'</b><small>'+esc(BOTS[k].desc)+'</small></span></div><div class="segs" role="group" aria-label="'+esc(BOTS[k].nome)+'">'
         + [["nao","Não seguir"],["nenhuma","Sem aviso"],["importantes","Importantes"],["todas","Todas"]].map(([v,t])=>'<button class="'+(est===v?"on":"")+'" data-a="wz-follow" data-b="'+k+'" data-n="'+v+'" aria-pressed="'+(est===v)+'">'+t+'</button>').join("")
@@ -1939,7 +2384,7 @@ async function exportar(){
     toast("Preparando backup…");
     const fotos = {};
     if(IDB.db){ for(const k of await IDB.keys("fotos")){ const b=await IDB.get("fotos",k); if(b) fotos[k]=await blobToDataURL(b); } }
-    const data = {app:"pablo-financas", versao:3, exportadoEm:new Date().toISOString(), cfg:S.cfg, pers:S.pers, movs:S.movs, auto:S.auto, fotos};
+    const data = {app:"pablo-financas", versao:3, exportadoEm:new Date().toISOString(), cfg:S.cfg, pers:S.pers, movs:S.movs, auto:S.auto, inv:S.inv, fotos};
     const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "backup-financas-"+today()+".json";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
@@ -1954,16 +2399,18 @@ async function importar(file){
     const pers = Array.isArray(d.pers) && d.pers.length ? d.pers : personalidadesPadrao(d.cfg||{});
     const cfg = montarCfg(d.cfg||{});
     const auto = Array.isArray(d.auto) ? d.auto : [];
+    const inv = Array.isArray(d.inv) ? d.inv : [];
     if(IDB.db){
       await IDB.clear("movs"); await IDB.clear("fotos"); await IDB.clear("pers"); await IDB.clear("auto");
       for(const m of d.movs) await IDB.put("movs", m);
       for(const a of auto) await IDB.put("auto", a);
+      await IDB.clear("inv"); for(const a of inv) await IDB.put("inv", a);
       for(const p of pers) await IDB.put("pers", p);
       for(const [id,url] of Object.entries(d.fotos||{})){ const b = await (await fetch(url)).blob(); await IDB.put("fotos", b, id); }
       await IDB.put("cfg", cfg, "app");
     }
     for(const u of fotoCache.values()) URL.revokeObjectURL(u); fotoCache.clear();
-    S.movs = d.movs; S.auto = auto; S.pers = pers.sort((a,b)=>(a.ordem||0)-(b.ordem||0)); S.cfg = cfg;
+    S.movs = d.movs; S.auto = auto; S.inv = inv; S.pers = pers.sort((a,b)=>(a.ordem||0)-(b.ordem||0)); S.cfg = cfg;
     S.importar=false; S.view="home"; render(); toast("Backup restaurado: "+d.movs.length+" movimentações");
   }catch(e){ S.importar=false; render(); toast("Esse arquivo não é um backup do app."); }
 }
@@ -1991,7 +2438,8 @@ function montarCfg(c){
     follow, plano,
     lembretes: [],
     cambioHist: Array.isArray(c.cambioHist) ? c.cambioHist : [],
-    cambioCheck: c.cambioCheck || ""
+    cambioCheck: c.cambioCheck || "",
+    brapiToken: c.brapiToken || "", cdi: c.cdi || null, cdiManual: c.cdiManual || 0, cot: c.cot || {}, cotTs: c.cotTs || 0, fiiAlerta: c.fiiAlerta || ""
   });
 }
 function personalidadesPadrao(oldCfg){
@@ -2077,6 +2525,23 @@ document.addEventListener("click", e=>{
         abrirNova(null,{tipo:p.tipo, conta:p.conta, de:p.de, para:p.para, valor:p.valor, categoria:p.categoria, legenda:p.nome, data:p.data, prevKey:p.key, prevGrupo:p.grupo}); break; }
     case "hol-aplicar": (async()=>{ const a=S.auto.find(x=>x.id===b.dataset.id); const it=a&&PL().itens.find(i=>i.id===a.itemId); if(!it) return;
         it.valor=a.recebido; a.aplicado=true; await salvarCfg(); await salvarAuto(a); render(); toast("Previsão atualizada para "+money(a.recebido)); })(); break;
+    /* investimentos */
+    case "ptab": S.ptab=b.dataset.t; render(); break;
+    case "inv-rf-novo": abrirInv({modo:"rf-novo", pid:b.dataset.p, sub:"CDB", pct:100, isento:false, dataAplic:today(), valor:0, aplicado:0, mover:saldo(b.dataset.p)>0}); break;
+    case "inv-rf-edit": { const at=S.inv.find(x=>x.id===b.dataset.id); if(at) abrirInv({modo:"rf-edit", id:at.id, sub:at.sub, nome:at.nome, banco:at.banco, pct:at.pct, isento:at.isento, dataAplic:at.dataAplic, aplicado:principalRF(at,today())}); break; }
+    case "inv-rf-op": abrirInv({modo:"rf-op", id:b.dataset.id, op:b.dataset.op, valor:0, data:today(), mover:true}); break;
+    case "inv-rf-conf": { const at=S.inv.find(x=>x.id===b.dataset.id); if(at) abrirInv({modo:"rf-conf", id:at.id, valor:valorRF(at,today())}); break; }
+    case "inv-rv-novo": abrirInv({modo:"rv-novo", pid:b.dataset.p, ticker:"", qtd:"", preco:0, mover:false}); break;
+    case "inv-rv-op": { const at=S.inv.find(x=>x.id===b.dataset.id); if(!at) break; const c=cot(at.ticker); abrirInv({modo:"rv-op", id:at.id, op:b.dataset.op, qtd:"", preco:c?c.preco:posicaoRV(at).pm, data:today(), mover:true}); break; }
+    case "inv-rv-edit": { const at=S.inv.find(x=>x.id===b.dataset.id); if(!at) break; const ps=posicaoRV(at); abrirInv({modo:"rv-edit", id:at.id, qtd:ps.cotas, preco:ps.pm}); break; }
+    case "inv-prov": { const at=S.inv.find(x=>x.id===b.dataset.id); if(!at) break; const pp=proventoPrevisto(at, ymHoje()); abrirInv({modo:"prov", id:at.id, valor:pp?pp.valor:0, data: pp && pp.data<=today() ? pp.data : today(), estim:!!(pp&&pp.estim)}); break; }
+    case "inv-b3": abrirInv({modo:"b3", pid:b.dataset.p, preview:null}); break;
+    case "inv-fechar": fecharInv(); break;
+    case "inv-salvar": salvarInv(); break;
+    case "inv-del-pedir": S.invForm.confirmDel=true; renderInv(); break;
+    case "inv-del-cancel": S.invForm.confirmDel=false; renderInv(); break;
+    case "inv-del": (async()=>{ await apagarAtivo(S.invForm.id); fecharInv(); render(); toast("Removido da carteira"); })(); break;
+    case "inv-atualizar": (async()=>{ toast("Buscando cotações…"); const r=await atualizarCotacoes(true); render(); toast(r.ok?"Cotações atualizadas ("+r.n+" de "+r.total+")":r.motivo==="sem token"?"Cole o token da brapi primeiro.":r.motivo==="sem ativos"?"Nenhum FII ou ação cadastrado.":"Não consegui buscar: confira o token e a internet."); })(); break;
     case "lemb-novo": abrirLemb(null); break;
     case "lemb-editar": abrirLemb(b.dataset.id); break;
     case "lemb-cancelar": S.lform=null; render(); break;
@@ -2124,6 +2589,7 @@ document.addEventListener("input", e=>{
     const k = t.dataset.k, scope = t.dataset.scope;
     if(scope==="lform" && S.lform) S.lform.valor=cents;
     if(scope==="wz" && S.setup && S.setup.form) S.setup.form[k]=cents;
+    if(scope==="inv" && S.invForm) S.invForm[k]=cents;
     if(scope==="saldo" && S.setup) S.setup.saldos[k]=cents;
     if(scope==="plano"){ PL()[k]=cents; clearTimeout(S.tPl); S.tPl=setTimeout(salvarCfg,400); }
     if(scope==="form" && S.form){ S.form.valor=cents; S.form.okNeg=false; const hn=document.getElementById("hint-num"); const ref=S.form.tipo==="transfer"?S.form.de:S.form.conta; if(hn) hn.textContent=money(saldo(ref)-cents); }
@@ -2133,6 +2599,8 @@ document.addEventListener("input", e=>{
   }
   if(t.id==="busca"){ S.busca=t.value; render(); return; }
   if(t.id==="crop-z" && S.crop){ S.crop.zoom=Number(t.value); desenharCrop(); return; }
+  if(S.invForm){ const f=S.invForm;
+    if(t.id==="i-nome") f.nome=t.value; if(t.id==="i-banco") f.banco=t.value; if(t.id==="i-pct") f.pct=t.value; if(t.id==="i-ticker") f.ticker=t.value; if(t.id==="i-qtd") f.qtd=t.value; }
   if(S.setup && S.setup.form){ const f=S.setup.form;
     if(t.id==="f-nome") f.nome=t.value; if(t.id==="f-dia") f.dia=t.value; if(t.id==="f-parc") f.parcelas=t.value; }
   if(S.lform){ if(t.id==="lf-titulo") S.lform.titulo=t.value; if(t.id==="lf-dia") S.lform.dia=t.value; }
@@ -2142,6 +2610,17 @@ document.addEventListener("input", e=>{
 document.addEventListener("change", e=>{
   const t = e.target;
   if(t.id==="arq-backup" && t.files && t.files[0]){ importar(t.files[0]); return; }
+  if(S.invForm){ const f=S.invForm;
+    if(t.id==="i-tipo"){ f.sub=t.value; if(/^LC[IA]$/.test(t.value)) f.isento=true; renderInv(); return; }
+    if(t.id==="i-isento"){ f.isento=t.checked; return; }
+    if(t.id==="i-mover"){ f.mover=t.checked; return; }
+    if(t.id==="i-data"){ if(f.modo==="rf-novo"||f.modo==="rf-edit") f.dataAplic=t.value; else f.data=t.value; return; }
+    if(t.id==="i-qtd"){ f.qtd=t.value; renderInv(); return; }
+    if(t.id==="b3-arq" && t.files && t.files[0]){ const file=t.files[0]; f.arquivo=file.name; f.lendo=true; f.err=""; f.preview=null; renderInv();
+      lerB3(file).then(r=>{ f.lendo=false; f.preview=r; renderInv(); }).catch(e=>{ f.lendo=false; f.err=String(e.message||e); renderInv(); }); return; }
+  }
+  if(t.id==="aj-token"){ S.cfg.brapiToken=t.value.trim(); S.cfg.cotTs=0; salvarCfg(); toast(S.cfg.brapiToken?"Token salvo":"Token removido"); return; }
+  if(t.id==="aj-cdi"){ const v=parseFloat(String(t.value).replace(",",".")); S.cfg.cdiManual = v>0 ? v : 0; salvarCfg(); render(); toast(v>0?"CDI manual: "+v+"%":"Usando o CDI do Banco Central"); return; }
   if(S.setup && S.setup.form){ const f=S.setup.form;
     if(t.id==="f-conta") f.conta=t.value; if(t.id==="f-de") f.de=t.value; if(t.id==="f-para") f.para=t.value;
     if(t.id==="f-inicio"){ f.inicioMes=t.value; if(f.dur==="parcelas"){ render(); return; } } if(t.id==="f-fim") f.fimMes=t.value; if(t.id==="f-mes") f.mes=t.value;
@@ -2182,7 +2661,7 @@ if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>ajustar
 document.addEventListener("scroll", e=>{ const el=e.target; if(el && el.classList && el.classList.contains("slides")) atualizarContador(el); }, true);
 document.addEventListener("keydown", e=>{
   if(e.key!=="Escape") return;
-  if(S.crop) fecharCrop(); else if(S.form) fecharNova();
+  if(S.crop) fecharCrop(); else if(S.invForm) fecharInv(); else if(S.form) fecharNova();
 });
 
 /* ======================================================================
@@ -2212,6 +2691,7 @@ render();
       for(const p of S.pers) await IDB.put("pers", p);
     }
     S.auto = await IDB.all("auto") || [];
+    S.inv = await IDB.all("inv") || [];
     S.cfg = montarCfg(c);
     await IDB.put("cfg", S.cfg, "app");
     if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
