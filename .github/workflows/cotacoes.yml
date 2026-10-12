@@ -1,5 +1,5 @@
 # Robô de cotações do Pablo Finanças.
-# Roda sozinho no GitHub de hora em hora nos dias úteis, busca cotação, proventos e CDI
+# Roda sozinho no GitHub de hora em hora nos dias úteis, busca cotação (B3), proventos (Fundamentus) e CDI (Banco Central)
 # e salva o arquivo cotacoes.json ao lado do index.html. O app lê esse arquivo.
 # Para incluir um ativo novo, edite o tickers.txt (um código por linha).
 name: Cotações
@@ -28,17 +28,22 @@ jobs:
       - name: Buscar cotações, proventos e CDI
         run: |
           python3 - <<'PY'
-          import json, os, re, time, urllib.request, datetime as dt
+          import json, os, re, time, html, urllib.request, datetime as dt
 
-          UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36", "Accept": "application/json"}
-          def get(url, tent=3):
+          UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+                "Accept": "text/html,application/json;q=0.9,*/*;q=0.8", "Accept-Language": "pt-BR,pt;q=0.9"}
+          def baixar(url, tent=3):
+              err = None
               for i in range(tent):
                   try:
-                      with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
-                          return json.loads(r.read().decode("utf-8"))
+                      with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=25) as r:
+                          return r.read()
                   except Exception as e:
                       err = e; time.sleep(2 + i * 3)
               raise err
+          def get_json(url): return json.loads(baixar(url).decode("utf-8"))
+          def num(txt): return float(txt.strip().replace(".", "").replace(",", "."))
+          def iso(d): dd, mm, aa = d.split("/"); return f"{aa}-{mm}-{dd}"
 
           # pasta do app: onde está o index.html do Pablo Finanças
           pasta = "."
@@ -61,43 +66,78 @@ jobs:
           if os.path.exists(saida):
               try: antigo = json.load(open(saida, encoding="utf-8"))
               except Exception: antigo = {}
-          ativos = {}
 
+          # --- cotação: 1) B3  2) Yahoo  3) Fundamentus
+          def preco_b3(t):
+              j = get_json(f"https://cotacao.b3.com.br/mds/api/v1/instrumentQuotation/{t}")
+              q = j["Trad"][0]["scty"]["SctyQtn"]
+              p = float(q["curPrc"]); v = float(q.get("prcFlcn") or 0)
+              if not p: raise ValueError("B3 sem preço")
+              return p, v, "B3"
+          def preco_yahoo(t):
+              j = get_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{t}.SA?range=5d&interval=1d")
+              m = j["chart"]["result"][0]["meta"]; p = m["regularMarketPrice"]
+              ant = m.get("chartPreviousClose") or 0
+              return p, ((p / ant - 1) * 100 if ant else 0), "Yahoo"
+          def preco_fundamentus(t):
+              h = baixar(f"https://www.fundamentus.com.br/detalhes.php?papel={t}").decode("latin-1")
+              m = re.search(r"Cota(?:ç|&ccedil;)[aã]o</span>.*?<span class=\"txt\">\s*([\d.,]+)", h, re.S)
+              if not m: raise ValueError("Fundamentus sem cotação")
+              d = re.search(r"Dia</span>.*?<font[^>]*>\s*(-?[\d.,]+)%", h, re.S)
+              return num(m.group(1)), (num(d.group(1)) if d else 0), "Fundamentus"
+
+          # --- proventos: Fundamentus (data com, pagamento e valor)
+          def proventos(t):
+              fii = t.endswith("11")
+              url = f"https://www.fundamentus.com.br/{'fii_proventos' if fii else 'proventos'}.php?papel={t}&tipo=2"
+              h = baixar(url).decode("latin-1")
+              out = []
+              for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", h, re.S):
+                  tds = [html.unescape(re.sub(r"<[^>]+>", "", x)).strip() for x in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+                  if len(tds) < 4: continue
+                  datas = [x for x in tds if re.fullmatch(r"\d{2}/\d{2}/\d{4}", x)]
+                  vals = [x for x in tds if re.fullmatch(r"\d+,\d+", x)]
+                  if not datas or not vals: continue
+                  com = iso(datas[0]); pag = iso(datas[1]) if len(datas) > 1 else ""
+                  rate = num(vals[0])
+                  if not fii and len(tds) >= 5:
+                      q = re.sub(r"\D", "", tds[4]); rate = rate / int(q) if q and int(q) > 1 else rate
+                  if rate > 0: out.append({"rate": round(rate, 6), "com": com, "pag": pag})
+              out.sort(key=lambda x: x["pag"] or x["com"], reverse=True)
+              return out[:24]
+
+          ativos, erros = {}, {}
           for t in tickers:
-              try:
-                  j = get(f"https://query1.finance.yahoo.com/v8/finance/chart/{t}.SA?range=5d&interval=1d")
-                  m = j["chart"]["result"][0]["meta"]
-                  preco = m.get("regularMarketPrice")
-                  ant = m.get("chartPreviousClose") or m.get("previousClose")
-                  closes = [c for c in (j["chart"]["result"][0].get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c]
-                  if len(closes) >= 2: ant = closes[-2]
-                  if not preco: raise ValueError("sem preço")
-                  a = {"preco": round(preco, 2), "var": round((preco / ant - 1) * 100, 2) if ant else 0,
-                       "nome": m.get("longName") or m.get("shortName") or "", "divs": []}
+              a, probs = None, []
+              for f in (preco_b3, preco_yahoo, preco_fundamentus):
                   try:
-                      d = get(f"https://query1.finance.yahoo.com/v8/finance/chart/{t}.SA?range=2y&interval=1mo&events=div")
-                      ev = (d["chart"]["result"][0].get("events") or {}).get("dividends") or {}
-                      divs = sorted(ev.values(), key=lambda x: -x["date"])[:24]
-                      a["divs"] = [{"rate": round(x["amount"], 6), "com": dt.datetime.fromtimestamp(x["date"], dt.timezone.utc).strftime("%Y-%m-%d")} for x in divs]
+                      p, v, fonte = f(t)
+                      a = {"preco": round(p, 2), "var": round(v, 2), "fonte": fonte, "nome": "", "divs": []}; break
                   except Exception as e:
-                      print(t, "proventos:", e)
-                      a["divs"] = (antigo.get("ativos", {}).get(t) or {}).get("divs", [])
-                  ativos[t] = a
-                  print(t, a["preco"], len(a["divs"]), "proventos")
-              except Exception as e:
-                  print(t, "falhou:", e)
+                      probs.append(f"{f.__name__}: {e}")
+              if a is None:
+                  erros[t] = "; ".join(probs)
+                  print(t, "sem cotação:", erros[t])
                   if t in antigo.get("ativos", {}): ativos[t] = antigo["ativos"][t]
+                  continue
+              try:
+                  a["divs"] = proventos(t)
+              except Exception as e:
+                  print(t, "proventos:", e)
+                  a["divs"] = (antigo.get("ativos", {}).get(t) or {}).get("divs", [])
+              ativos[t] = a
+              print(t, a["preco"], a["fonte"], len(a["divs"]), "proventos")
               time.sleep(1)
 
           cdi = antigo.get("cdi")
           try:
-              x = get("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json")[0]
+              x = get_json("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json")[0]
               cdi = {"v": float(str(x["valor"]).replace(",", ".")), "d": x["data"]}
           except Exception as e:
               print("CDI falhou:", e)
 
           agora = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-          json.dump({"atualizado": agora, "tickers": tickers, "ativos": ativos, "cdi": cdi},
+          json.dump({"atualizado": agora, "tickers": tickers, "ativos": ativos, "erros": erros, "cdi": cdi},
                     open(saida, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
           PY
 
@@ -107,3 +147,4 @@ jobs:
           git config user.email "robo-cotacoes@users.noreply.github.com"
           git add -A
           git diff --cached --quiet && echo "nada mudou" || (git commit -m "cotações $(date -u +%F\ %H:%M)" && git push)
+
