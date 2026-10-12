@@ -19,6 +19,8 @@ Funciona offline, instala no celular como app e guarda tudo **só no seu aparelh
 | `manifest.webmanifest` | Nome, cores e ícones para instalar como app |
 | `sw.js` | Faz o app abrir sem internet |
 | `icon-*.png` | Ícones do app |
+| `fontes.txt` | Vitrine de sites de notícia e canais do YouTube que aparecem na lupa |
+| `robo_conteudo.py` | Parte do robô que busca notícias, vídeos, Ibovespa, IFIX e Selic |
 | `tickers.txt` | Lista dos FIIs e ações que o robô de cotações acompanha |
 | `robo-cotacoes.yml` | O robô de cotações. **Não suba este arquivo**: copie o conteúdo dele (passo a passo abaixo) |
 
@@ -121,6 +123,33 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - **FIIs e ações:** cotas, preço médio, cotação e proventos pela brapi (cole o token em Ajustes → Investimentos), Comprar, Vender e Registrar provento.
 - **Importar da B3:** baixe o extrato de Movimentação (e, se quiser, o de Posição) na Área do Investidor e importe na aba Carteira.
 - Robôs **@rendimentos** e **@fii**. O @reserva passa a contar a carteira, e o @horizonte inclui os rendimentos.
+
+## Notícias, vídeos e mercado (versão 18)
+
+- **Lupa virou vitrine:** sites de notícia (InfoMoney, Money Times, Seu Dinheiro, Brazil Journal, FIIs.com.br, InvestNews), canais do YouTube de finanças e os robôs, com busca. Toque em Seguir e o conteúdo entra no feed.
+- **Feed:** seus posts das últimas 48 horas ficam no topo; depois vem tudo misturado por horário (seus posts mais antigos, notícias e vídeos dos últimos 7 dias). Notícia que cita um ativo seu ganha a etiqueta "Fala do seu MXRF11" e sobe no feed.
+- **Vídeos tocam dentro do app** (toque no vídeo). Notícias abrem no site.
+- **Faixa do mercado** abaixo dos stories: Ibovespa, IFIX, dólar, Bitcoin e Selic.
+- **Incluir outro site ou canal:** edite o `fontes.txt` no GitHub (o link está na lupa), uma linha por fonte. Para canal, use o @ do canal.
+
+### Atualizar o robô para buscar notícias e vídeos (uma vez)
+1. Suba o `index.html`, o `sw.js`, o `fontes.txt` e o `robo_conteudo.py` na mesma pasta do app.
+2. Abra `.github/workflows/cotacoes.yml` no GitHub, clique no lápis, apague tudo, cole o conteúdo do `robo-cotacoes.yml` novo e clique em Commit changes.
+3. Actions → Cotações → Run workflow. Quando ficar verde, aparece o `conteudo.json` e a lupa se enche.
+
+## Stories e artes dos robôs (versão 17)
+
+- **Stories no topo:** cada personalidade com post nas últimas 24 horas ganha um anel colorido. Toque para ver em tela cheia. Toque à direita para avançar, à esquerda para voltar, segure para pausar e arraste para baixo para fechar.
+- **Robôs viraram stories:** ficam depois da linha, com anel aceso e "novo" quando têm novidade. O feed fica só com os posts de pessoas; robô só aparece lá com aviso importante (vai faltar dinheiro, conta vencendo).
+- **Artes que mudam com os seus números:** o @meumês mostra o tempo (sol, nublado ou chuva), o @horizonte desenha a montanha com a sua projeção, o @reserva enche um pote, o @fii acende as janelas dos prédios conforme os proventos caem, o @contas risca o calendário, o @rendimentos cresce uma planta, o @câmbio sobe ou desce a nota de dólar, e tem arte para @holerite, @resumo e @lembretes.
+
+## Feed, gráficos e carteira (versão 16)
+
+- **Feed novo:** no topo ficam só os robôs que avisaram algo nas últimas horas (respeitando o sininho). Depois vêm os seus posts. Os painéis dos robôs (@meumês, @contas, @fii, @horizonte…) viram uma faixa de cartões depois dos 3 primeiros posts; toque num cartão para abrir o carrossel. Os outros posts de robô ficam no fim, em "Mais dos robôs".
+- **Gráficos tocáveis:** toque ou arraste o dedo no gráfico para ver o valor de cada dia ou mês.
+- **Desfazer investimento:** no ⋯ de um post "Investiu" ou "Resgatou", toque em Desfazer: o dinheiro volta para o caixa e a operação sai da carteira. Ao apagar um ativo na carteira, o app pergunta se foi teste (devolve tudo ao caixa) ou se é só para tirar da carteira.
+- **Carteira:** o resumo mostra Ganhos do mês, A receber (proventos previstos) e Valorização. A variação das cotas diz "hoje".
+- **@fii avisa** no dia de pagamento de um provento e 3 dias antes da data-com (a anunciada ou a provável, pelo padrão dos últimos meses).
 
 ## Robô de cotações (sem token, tudo automático)
 

@@ -57,6 +57,34 @@ button,label[for]{cursor:pointer}
 .stories{display:flex;gap:16px;padding:4px 16px 16px;overflow-x:auto;scrollbar-width:none}
 .stories::-webkit-scrollbar{display:none}
 .cs-sub{display:block;font-size:11px;color:var(--fg-3);margin-top:2px}
+/* notícias, vídeos e mercado */
+.mkt{display:flex;gap:8px;overflow-x:auto;padding:0 16px 14px;scrollbar-width:none}.mkt::-webkit-scrollbar{display:none}
+.mk{flex:0 0 auto;display:flex;flex-direction:column;gap:1px;padding:8px 12px;border-radius:12px;background:var(--surface);border:1px solid rgba(255,255,255,.05)}
+.mk small{font-size:10.5px;color:var(--fg-3);letter-spacing:.04em}.mk b{font-size:14px;font-weight:600}
+.mk i{font-style:normal;font-size:11px;color:var(--fg-3)}.mk i.up{color:var(--ok)}.mk i.down{color:#FF8A96}
+.f-av{position:relative;width:36px;height:36px;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#E9E6E0;color:#1B1E26;font-size:15px}
+.f-av.redondo{border-radius:50%}.f-av.grande{width:52px;height:52px;font-size:20px}
+.f-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cpost .ph .btn.mini{min-height:32px;padding:0 12px}
+.c-tag{display:flex;gap:6px;align-items:center;margin:0 16px 10px;padding:7px 10px;border-radius:10px;background:rgba(111,220,168,.12);color:#A9F0CB;font-size:12.5px;font-weight:600}.c-tag svg{width:15px;height:15px}
+.c-link{display:block;color:inherit;text-decoration:none}
+.c-img{display:block;aspect-ratio:16/9;background:linear-gradient(135deg,#1B2333,#0B0D13);overflow:hidden;position:relative}
+.c-img img{width:100%;height:100%;object-fit:cover;display:block}
+.c-img.sem{display:flex;align-items:center;justify-content:center;aspect-ratio:3/1}.c-img.sem span{font-size:13px;color:var(--fg-3);letter-spacing:.1em;text-transform:uppercase}
+.c-body{display:flex;flex-direction:column;gap:6px;padding:12px 16px 16px}
+.c-tit{font-size:16px;line-height:1.35;font-weight:600}
+.c-res{font-size:13.5px;line-height:1.45;color:var(--fg-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.c-ler{font-size:12.5px;color:var(--fg-3)}
+.c-video{position:relative;display:block;width:100%;aspect-ratio:16/9;background:#000;border:0;padding:0}
+.c-video.short{aspect-ratio:9/16;max-height:78vh;margin:0 auto}
+.c-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.c-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.c-play{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(5,6,10,.7);color:#fff;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}.c-play svg{width:30px;height:30px;margin-left:3px}
+.c-short{position:absolute;left:10px;top:10px;padding:3px 8px;border-radius:999px;background:#FF3B55;color:#fff;font-size:11px;font-weight:700}
+.sugf{padding:14px 0 18px;border-bottom:1px solid var(--line,#1B1E26)}
+.sugc{flex:0 0 132px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:16px;background:var(--surface);text-align:center}
+.sugc b{font-size:13px}.sugc small{font-size:11px;color:var(--fg-3)}.sugc .btn{width:100%}
+.fhead{display:flex;gap:14px;align-items:center;padding:6px 16px 14px}.fhead div{display:flex;flex-direction:column;gap:3px}.fhead b{font-size:18px}.fhead span{font-size:13.5px;color:var(--fg-2)}.fhead small{font-size:12px;color:var(--fg-3)}
 /* artes dos robôs */
 .arte{position:relative;margin:0 0 12px;border-radius:0;overflow:hidden}
 .arte-svg{display:block;width:100%;height:auto;aspect-ratio:320/170}
@@ -423,7 +451,7 @@ button.tile{border:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .xcard .mid b{font-size:15px}
 .xcard .mid span{font-size:13px;color:var(--fg-2);line-height:1.45}
 .xcard .mid small{font-size:11px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.8px}
-.btn.seg{min-height:36px;padding:0 14px;font-size:13px;border-radius:10px;background:var(--fg);color:var(--bg)}
+.btn.seg{display:inline-flex;margin:0;gap:0;min-height:36px;padding:0 14px;font-size:13px;border-radius:10px;background:var(--fg);color:var(--bg);white-space:nowrap}
 .btn.seg.on{background:var(--surface-2);color:var(--fg)}
 .bhead{display:flex;align-items:center;gap:20px;padding:6px 16px 12px}
 .bhead .bot-av{width:92px;height:92px;border-radius:26px;border-width:2px}
@@ -770,6 +798,7 @@ function topSimple(title, backTo){
 function viewHome(){
   let h = topMonth();
   h += bolhasStories();
+  if(S.month===ymHoje()) h += faixaMercado();
   if(S.ready && !PL().configurado) h += '<div class="banner" style="background:#12233F;color:var(--fg)" role="status">'+I.wallet+'<span style="flex:1"><b>Deixe o app útil de verdade.</b> Configure renda, contas fixas e metas, e os robôs passam a mostrar seu mês, o que falta pagar e quanto sobra.<span style="display:block;margin-top:10px"><button class="btn pri" data-a="setup" data-s="0">Configurar meu dinheiro</button></span></span></div>';
   else if(S.ready && !Object.keys(BOTS).some(segue)) h += '<div class="notice" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>Siga robôs para o feed ganhar vida sozinho: dólar, lembretes, resumo da semana e lembranças.</span><button class="btn seg" data-a="go" data-v="explorar">Explorar</button></div>';
   if(S.dbTravado) h += '<div class="banner" role="alert">'+I.alert+'<span><b>Seus dados estão guardados, mas outra cópia do app está aberta e travou a atualização.</b> Feche o Finanças em todo lugar (o app instalado e as abas do navegador com este endereço), depois abra só um. Nada do que você fizer agora será salvo.</span></div>';
@@ -787,8 +816,16 @@ function viewHome(){
   const novos = robos.filter(a=>novidade(a) && a.imp).sort((a,b)=>(b.nts||b.ts)-(a.nts||a.ts));
   if(!S.ready){ h += '<div class="empty"><strong>Carregando…</strong>Buscando suas movimentações.</div>'; return h; }
   h += novos.map(autoPost).join("");
-  if(!pessoas.length) h += '<div class="empty"><strong>Nenhum post seu em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil e story por 24 horas. Os robôs estão nas bolinhas lá em cima.</div>';
-  else h += pessoas.map(post).join("");
+  const agora = Date.now(), recentes = pessoas.filter(m=>m.fixado || agora-(m.criadoEm||m.ts) < 48*3600e3);
+  const resto = pessoas.filter(m=>!recentes.includes(m)).map(m=>({k:"m", o:m, ts:m.ts}));
+  const cont = S.month===ymHoje() ? conteudoDoFeed() : [];
+  h += recentes.map(post).join("");
+  if(S.month===ymHoje()) h += sugestoesFontes();
+  const mix = resto.concat(cont).sort((a,b)=>b.ts-a.ts), N = S.feedN || 25;
+  if(!pessoas.length && !cont.length) h += '<div class="empty"><strong>Nenhum post seu em '+mesNome(S.month)+' ainda</strong>Toque no + para registrar uma entrada, um gasto ou uma transferência. Coloque uma foto: ela vira lembrança no perfil e story por 24 horas. Os robôs estão nas bolinhas lá em cima.</div>';
+  h += mix.slice(0,N).map(it=>it.k==="m"?post(it.o):cardConteudo(it.o)).join("");
+  if(mix.length>N) h += '<div style="padding:16px;text-align:center"><button class="btn" data-a="mais-feed">Ver mais</button></div>';
+  else if(cont.length) h += '<p class="foot">Você viu tudo dos últimos 7 dias. O robô traz novidades de hora em hora.</p>';
   return h;
 }
 
@@ -921,8 +958,19 @@ const sinoIcone = k => nivel(k)==="nenhuma" ? sv('<path d="M6 8a6 6 0 0 1 10.6-3
 function postsDoBot(k){ return S.auto.filter(a=>a.bot===k && !a.oculto).sort((a,b)=>b.ts-a.ts); }
 function viewExplorar(){
   let h = '<header class="top"><span style="width:44px;flex-shrink:0"></span><span class="h1">Explorar</span><span style="width:44px;flex-shrink:0"></span></header>';
-  h += '<div class="field" style="padding-top:0"><span class="help">Robôs são perfis automáticos. Siga os que interessam e escolha no sininho quando quer ser avisado.</span></div>';
-  h += Object.entries(BOTS).map(([k,b])=>'<div class="xcard"><button class="linkish" data-a="bot" data-b="'+k+'" aria-label="Abrir perfil de '+esc(b.nome)+'">'+botAv(k)+'</button>'
+  const q = (S.buscaX||"").trim().toLowerCase(), bate = (...t) => !q || t.join(" ").toLowerCase().includes(q);
+  h += '<div class="field" style="padding-top:0"><input id="busca-x" class="inp" type="search" placeholder="Buscar sites, canais e robôs" value="'+esc(S.buscaX||"")+'" autocomplete="off"></div>';
+  const fs = fontesCont();
+  const nts = fs.filter(f=>f.tipo==="noticia" && bate(f.nome,f.desc)), cns = fs.filter(f=>f.tipo==="canal" && bate(f.nome,f.desc));
+  if(!S.cont) h += '<div class="notice">Ainda não encontrei as notícias e os vídeos do robô do GitHub. Suba o robo_conteudo.py e o fontes.txt (veja o LEIA-ME) e rode o robô uma vez.</div>';
+  if(nts.length) h += '<div class="sec">Sites de notícias</div>' + nts.map(linhaFonte).join("");
+  if(cns.length) h += '<div class="sec">Canais do YouTube</div>' + cns.map(linhaFonte).join("");
+  const lt = linkFontes();
+  if(S.cont && lt) h += '<div class="field"><span class="help">Quer outro site ou canal? <a href="'+lt+'" target="_blank" rel="noopener" style="color:var(--fg);text-decoration:underline">Adicione no fontes.txt</a> e em alguns minutos ele aparece aqui.</span></div>';
+  const bots = Object.entries(BOTS).filter(([k,b])=>bate(b.nome,b.desc,b.titulo));
+  if(bots.length) h += '<div class="sec">Robôs</div><div class="field" style="padding-top:0"><span class="help">Perfis automáticos que leem os seus dados. Escolha no sininho quando quer ser avisado.</span></div>';
+  if(q && !nts.length && !cns.length && !bots.length) h += '<div class="empty"><strong>Nada com "'+esc(S.buscaX)+'"</strong>Tente outro nome.</div>';
+  h += bots.map(([k,b])=>'<div class="xcard"><button class="linkish" data-a="bot" data-b="'+k+'" aria-label="Abrir perfil de '+esc(b.nome)+'">'+botAv(k)+'</button>'
     +'<button class="linkish mid" data-a="bot" data-b="'+k+'"><small>robô '+b.tipo+'</small><b>'+esc(b.nome)+'</b><span>'+esc(b.desc)+'</span></button>'
     +'<button class="btn seg '+(segue(k)?"on":"")+'" data-a="'+(segue(k)?"bot":"seguir")+'" data-b="'+k+'">'+(segue(k)?"Seguindo":"Seguir")+'</button></div>').join("");
   return h;
@@ -1730,6 +1778,7 @@ function repoInfo(){
 }
 const repoArq = (r, arq) => (r.pasta ? r.pasta+"/" : "") + arq;
 function linkTickers(){ const r=repoInfo(); return r ? "https://github.com/"+r.dono+"/"+r.repo+"/edit/main/"+repoArq(r,"tickers.txt") : ""; }
+function linkFontes(){ const r=repoInfo(); return r ? "https://github.com/"+r.dono+"/"+r.repo+"/edit/main/"+repoArq(r,"fontes.txt") : ""; }
 function linkRobo(){ const r=repoInfo(); return r ? "https://github.com/"+r.dono+"/"+r.repo+"/actions/workflows/cotacoes.yml" : ""; }
 async function lerFeed(){
   const r = repoInfo(), urls = [];
@@ -2759,7 +2808,7 @@ function personalidadesPadrao(oldCfg){
    RENDER
    ====================================================================== */
 function renderNav(){
-  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost") ? "explorar" : S.view==="ajustes" ? "perfil" : S.view;
+  const v = S.view==="editar" ? (S.voltar||"perfil") : S.view==="notif" ? "home" : (S.view==="bot"||S.view==="botpost"||S.view==="fonte") ? "explorar" : S.view==="ajustes" ? "perfil" : S.view;
   const it = (k,icon,label)=>'<button class="ibtn '+(v===k?"on":"")+'" data-a="go" data-v="'+k+'" aria-label="'+label+'" '+(v===k?'aria-current="page"':'')+'>'+icon+'</button>';
   document.getElementById("nav").innerHTML = it("home",I.home,"Início")+it("explorar",I.search,"Explorar")
     +'<button class="plus" data-a="nova" aria-label="Nova movimentação">'+I.plus+'</button>'
@@ -2770,7 +2819,7 @@ function render(){
   const ae = document.activeElement;
   const focusId = ae && ae.id && app.contains(ae) ? ae.id : null;
   const rolagem = {}; app.querySelectorAll(".slides[data-id]").forEach(el=>{ if(el.scrollLeft) rolagem[el.dataset.id]=el.scrollLeft; });
-  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
+  app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="fonte"?viewFonte():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
   renderNav();
   app.querySelectorAll(".slides[data-id]").forEach(el=>{ const x=rolagem[el.dataset.id]; if(x){ el.style.scrollBehavior="auto"; el.scrollLeft=x; } atualizarContador(el); });
   hidratarFotos(app);
@@ -2970,6 +3019,98 @@ const ARTES = {
 };
 function arteDe(a){ const f = ARTES[a.bot]; if(!f) return ""; try{ const h = f(a); return h ? '<div class="arte">'+h+'</div>' : ""; }catch(e){ console.warn(e); return ""; } }
 
+/* ---------- notícias, vídeos e mercado (o robô do GitHub busca; aqui você escolhe o que seguir) ---------- */
+async function carregarConteudo(forcar){
+  if(!S.cont && IDB.db){ try{ S.cont = await IDB.get("cfg","conteudo") || null; }catch(_){} }
+  if(!forcar && S.cont && Date.now()-(S.cont._chk||0) < 15*60e3) return false;
+  const r = repoInfo(), urls = [];
+  if(r) urls.push("https://raw.githubusercontent.com/"+r.dono+"/"+r.repo+"/main/"+repoArq(r,"conteudo.json")+"?t="+Date.now());
+  urls.push("conteudo.json?t="+Date.now());
+  for(const u of urls){
+    try{ const j = await comTempo(u, 15000); if(j && Array.isArray(j.itens)){ j._chk = Date.now(); S.cont = j; if(IDB.db){ try{ await IDB.put("cfg", j, "conteudo"); }catch(_){} } return true; } }catch(_){}
+  }
+  return false;
+}
+async function mercadoAoVivo(){
+  const m = S.cfg.mlive || {}; if(Date.now()-(m.ts||0) < 10*60e3) return false;
+  try{
+    const j = await comTempo("https://economia.awesomeapi.com.br/json/last/USD-BRL,BTC-BRL", 10000);
+    const n = {ts:Date.now()};
+    if(j.USDBRL) n.usd = {v:+j.USDBRL.bid, var:+j.USDBRL.pctChange||0};
+    if(j.BTCBRL) n.btc = {v:+j.BTCBRL.bid, var:+j.BTCBRL.pctChange||0};
+    S.cfg.mlive = n; await salvarCfg(); return true;
+  }catch(_){ return false; }
+}
+const fontesCont = () => (S.cont && S.cont.fontes) || [];
+const fonteDe = id => fontesCont().find(f=>f.id===id);
+const segueFonte = id => !!(S.cfg.fontes||{})[id];
+async function seguirFonte(id, sim){ S.cfg.fontes = Object.assign({}, S.cfg.fontes||{}); if(sim) S.cfg.fontes[id] = Date.now(); else delete S.cfg.fontes[id]; await salvarCfg(); }
+const meusTickers = () => [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
+function fonteAv(f, grande){
+  const ini = esc(((f&&f.nome)||"?").replace(/[^A-Za-zÀ-ú0-9]/g,"").charAt(0).toUpperCase());
+  return '<span class="f-av '+(f&&f.tipo==="canal"?"redondo":"")+(grande?" grande":"")+'" aria-hidden="true">'+(f&&f.avatar?'<img src="'+esc(f.avatar)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'<b>'+ini+'</b></span>';
+}
+const milhar = n => n>=1e6 ? (n/1e6).toFixed(1).replace(".",",")+" mi" : n>=1e3 ? Math.round(n/1e3)+" mil" : String(n);
+function cardConteudo(it){
+  const f = fonteDe(it.fonte) || {nome:"Fonte", tipo:it.tipo==="video"?"canal":"noticia"};
+  const meus = (it.tickers||[]).filter(t=>meusTickers().includes(t));
+  let h = '<article class="post cpost">'
+    + '<div class="ph"><button class="who linkish" data-a="fonte" data-f="'+esc(it.fonte)+'">'+fonteAv(f)+'<span class="meta"><span class="t">'+esc(f.nome)+'</span><span class="s">'+(it.tipo==="video"?"Vídeo"+(it.views?" · "+milhar(it.views)+" visualizações":""):"Notícia")+' · '+tempoAtras(it.ts)+'</span></span></button>'
+    + (segueFonte(it.fonte)?'':'<button class="btn seg mini" data-a="seguir-fonte" data-f="'+esc(it.fonte)+'">Seguir</button>')+'</div>';
+  if(meus.length) h += '<div class="c-tag">'+I.alert+'<span>Fala do seu '+meus.map(esc).join(", ")+'</span></div>';
+  if(it.tipo==="video"){
+    if(S.tocando===it.id) h += '<div class="c-video'+(it.short?" short":"")+'"><iframe src="https://www.youtube-nocookie.com/embed/'+esc(it.videoId)+'?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="'+esc(it.titulo)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>';
+    else h += '<button class="c-video c-thumb'+(it.short?" short":"")+'" data-a="tocar" data-id="'+esc(it.id)+'" aria-label="Assistir '+esc(it.titulo)+'"><img src="'+esc(it.img)+'" alt="" loading="lazy"><span class="c-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span>'+(it.short?'<span class="c-short">Shorts</span>':'')+'</button>';
+    h += '<div class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'</div>';
+  } else {
+    h += '<a class="c-link" href="'+esc(it.link)+'" target="_blank" rel="noopener noreferrer">'
+      + (it.img ? '<span class="c-img"><img src="'+esc(it.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'sem\');this.remove()"></span>' : '<span class="c-img sem"><span>'+esc(f.nome)+'</span></span>')
+      + '<span class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'<span class="c-ler">Ler em '+esc(f.nome)+' ↗</span></span></a>';
+  }
+  return h + '</article>';
+}
+/* conteúdo das fontes seguidas, dos últimos 7 dias; o que fala dos seus ativos ganha um empurrão */
+function conteudoDoFeed(){
+  if(!S.cont) return [];
+  const meus = meusTickers(), lim = Date.now()-7*864e5;
+  return S.cont.itens.filter(it=>segueFonte(it.fonte) && it.ts>lim)
+    .map(it=>({k:"c", o:it, ts: it.ts + ((it.tickers||[]).some(t=>meus.includes(t)) ? 12*3600e3 : 0)}));
+}
+function sugestoesFontes(){
+  if(!S.cont || Object.keys(S.cfg.fontes||{}).length) return "";
+  const sug = (["n-infomoney","n-fiis-com-br","c-me-poupe","c-investidor-sardinha","c-o-primo-rico","n-seu-dinheiro"].map(fonteDe).filter(f=>f&&f.ok)).slice(0,5);
+  if(!sug.length) return "";
+  return '<section class="sugf"><div class="pn-h"><span>Deixe o feed vivo: siga sites e canais</span><button class="lnk" data-a="go" data-v="explorar">ver todos</button></div><div class="pn-row">'
+    + sug.map(f=>'<div class="sugc">'+fonteAv(f,true)+'<b>'+esc(f.nome)+'</b><small>'+(f.tipo==="canal"?"Canal":"Notícias")+'</small><button class="btn seg mini" data-a="seguir-fonte" data-f="'+esc(f.id)+'">Seguir</button></div>').join("")
+    + '</div></section>';
+}
+function faixaMercado(){
+  const m = (S.cont && S.cont.mercado) || {}, l = S.cfg.mlive || {}, c = [];
+  const chip = (nome, v, vr, fmt) => '<span class="mk"><small>'+nome+'</small><b class="num">'+fmt(v)+'</b>'+(vr!=null?'<i class="'+(vr>0.05?"up":vr<-0.05?"down":"")+'">'+(vr>0?"▲":vr<0?"▼":"■")+' '+Math.abs(vr).toFixed(2).replace(".",",")+'%</i>':'')+'</span>';
+  const pts = v => Math.round(v).toLocaleString("pt-BR"), rs = v => brl.format(v);
+  if(m.ibov) c.push(chip("Ibovespa", m.ibov.v, m.ibov.var, pts));
+  if(m.ifix) c.push(chip("IFIX", m.ifix.v, m.ifix.var, pts));
+  if(l.usd) c.push(chip("Dólar", l.usd.v, l.usd.var, rs));
+  if(l.btc) c.push(chip("Bitcoin", l.btc.v, l.btc.var, v=>"R$ "+Math.round(v/1000).toLocaleString("pt-BR")+" mil"));
+  if(m.selic) c.push(chip("Selic", m.selic.v, null, v=>String(v).replace(".",",")+"%"));
+  else if(S.cfg.cdi) c.push(chip("CDI", S.cfg.cdi.v, null, v=>String(v).replace(".",",")+"%"));
+  return c.length ? '<div class="mkt" aria-label="Mercado agora">'+c.join("")+'</div>' : "";
+}
+function viewFonte(){
+  const f = fonteDe(S.fonte); if(!f) return topSimple("Fonte","explorar")+'<div class="empty"><strong>Fonte não encontrada</strong>Ela pode ter saído do fontes.txt.</div>';
+  let h = topSimple(f.nome, "explorar");
+  h += '<div class="fhead">'+fonteAv(f,true)+'<div><b>'+esc(f.nome)+'</b><span>'+esc(f.desc||"")+'</span><small>'+(f.tipo==="canal"?"Canal do YouTube":"Site de notícias")+(f.ok?'':' · indisponível agora'+(f.erro?' ('+esc(f.erro.slice(0,60))+')':''))+'</small></div></div>'
+    + '<div class="two" style="padding:0 16px 14px"><button class="btn '+(segueFonte(f.id)?'':'pri')+'" data-a="seguir-fonte" data-f="'+esc(f.id)+'">'+(segueFonte(f.id)?'Seguindo':'Seguir')+'</button>'+(f.site?'<a class="btn" href="'+esc(f.site)+'" target="_blank" rel="noopener noreferrer">'+(f.tipo==="canal"?"Abrir no YouTube":"Abrir site")+' ↗</a>':'')+'</div>';
+  const its = ((S.cont&&S.cont.itens)||[]).filter(it=>it.fonte===f.id);
+  h += its.length ? its.map(cardConteudo).join("") : '<div class="empty"><strong>Nada por aqui ainda</strong>O robô do GitHub traz as novidades de hora em hora.</div>';
+  return h;
+}
+function linhaFonte(f){
+  return '<div class="xcard"><button class="linkish" data-a="fonte" data-f="'+esc(f.id)+'">'+fonteAv(f,true)+'</button>'
+    + '<button class="linkish mid" data-a="fonte" data-f="'+esc(f.id)+'"><small>'+(f.tipo==="canal"?"canal do YouTube":"site de notícias")+(f.ok?'':' · indisponível')+'</small><b>'+esc(f.nome)+'</b><span>'+esc(f.desc||"")+'</span></button>'
+    + '<button class="btn seg '+(segueFonte(f.id)?"on":"")+'" data-a="seguir-fonte" data-f="'+esc(f.id)+'">'+(segueFonte(f.id)?"Seguindo":"Seguir")+'</button></div>';
+}
+
 /* ---------- stories: personalidades (posts das últimas 24h) e robôs ---------- */
 const H24 = 24*3600e3;
 const vistoMap = () => S.cfg.visto || (S.cfg.visto = {});
@@ -3129,6 +3270,10 @@ document.addEventListener("click", e=>{
   switch(a){
     case "go": S.view=b.dataset.v; S.edit=null; S.del=null; S.menu=null; S.lform=null; S.importar=false; render(); window.scrollTo(0,0); if(S.view==="notif") marcarLidas(); break;
     case "pedir-apagar": S.del=b.dataset.id; S.menu=null; render(); break;
+    case "fonte": S.fonte=b.dataset.f; S.view="fonte"; S.tocando=null; render(); window.scrollTo(0,0); break;
+    case "seguir-fonte": { const id=b.dataset.f, sim=!segueFonte(id); seguirFonte(id, sim).then(()=>{ render(); toast(sim?"Seguindo "+((fonteDe(id)||{}).nome||""):"Deixou de seguir"); }); break; }
+    case "tocar": S.tocando=b.dataset.id; render(); break;
+    case "mais-feed": S.feedN=(S.feedN||25)+25; render(); break;
     case "story-abrir": abrirStory(b.dataset.k); break;
     case "story-fechar": fecharStory(); break;
     case "story-perfil": { const pid=b.dataset.p; fecharStory(); S.perfil=pid; S.view="perfil"; render(); window.scrollTo(0,0); break; }
@@ -3252,6 +3397,7 @@ document.addEventListener("input", e=>{
     return;
   }
   if(t.id==="busca"){ S.busca=t.value; render(); return; }
+  if(t.id==="busca-x"){ S.buscaX=t.value; render(); return; }
   if(t.id==="crop-z" && S.crop){ S.crop.zoom=Number(t.value); desenharCrop(); return; }
   if(S.invForm){ const f=S.invForm;
     if(t.id==="i-nome") f.nome=t.value; if(t.id==="i-banco") f.banco=t.value; if(t.id==="i-pct") f.pct=t.value; if(t.id==="i-ticker"){ f.ticker=t.value; clearTimeout(S.tCot); S.tCot=setTimeout(()=>cotacaoAgora(f), 500); } if(t.id==="i-qtd") f.qtd=t.value; }
@@ -3357,8 +3503,10 @@ render();
   S.perfil = S.pers[0] && S.pers[0].id;
   S.ready=true; render();
   rodarRobos();
+  carregarConteudo().then(m=>{ if(m) render(); });
+  mercadoAoVivo().then(m=>{ if(m && S.view==="home") render(); });
 })();
-document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") rodarRobos(); });
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ rodarRobos(); carregarConteudo().then(m=>{ if(m && !S.story) render(); }); mercadoAoVivo().then(m=>{ if(m && S.view==="home" && !S.story) render(); }); } });
 if("serviceWorker" in navigator && location.protocol==="https:"){
   addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }

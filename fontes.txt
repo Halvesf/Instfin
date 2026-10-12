@@ -1,0 +1,24 @@
+# Vitrine de notícias e vídeos do app. O robô do GitHub busca tudo daqui de hora em hora;
+# no app você escolhe o que seguir (aba da lupa).
+# Formato: tipo | nome | endereço | descrição (opcional)
+#   noticia -> endereço do feed RSS do site
+#   canal   -> @nome do canal no YouTube ou o id que começa com UC
+
+noticia | InfoMoney | https://www.infomoney.com.br/feed/ | Mercado, investimentos e economia
+noticia | Money Times | https://www.moneytimes.com.br/feed/ | Mercado financeiro em tempo real
+noticia | Seu Dinheiro | https://www.seudinheiro.com/feed/ | Investimentos e finanças pessoais
+noticia | Brazil Journal | https://braziljournal.com/feed/ | Negócios e mercado, com bastidores
+noticia | FIIs.com.br | https://fiis.com.br/feed/ | Notícias e comunicados dos fundos imobiliários
+noticia | InvestNews | https://investnews.com.br/feed/ | Economia e investimentos
+
+canal | Me Poupe! | UC8mDF5mWNGE-Kpfcvnn0bUg | Nathalia Arcuri e finanças pessoais
+canal | O Primo Rico | UCT4nDeU5pv1XIGySbSK-GgA | Thiago Nigro e investimentos
+canal | Investidor Sardinha | UCM3vJxmuJJkk1r0yzFI9eZg | Raul Sena, ações e FIIs
+canal | Gustavo Cerbasi | UC_mSfchV-fgpPy-vuwML8_A | Finanças pessoais e família
+canal | Viver de Rendimentos | UCrme1ga2Vi1K8VvRETCSFYA | Renda passiva e dividendos
+canal | Bruno Perini | @brunoperini | Você Mais Rico, investimentos
+canal | Clube do Valor | @ClubedoValor | Ações e investimento em valor
+canal | Economista Sincero | @economistasincero | Economia explicada sem enrolação
+canal | Nath Finanças | @NathFinancas | Finanças para quem ganha pouco
+canal | Fonte da Fortuna | @FontedaFortuna | Mercado e carteira de investimentos
+canal | Pé de Meia | UCGdDBOKHmWHDPuC8eUKqyGA | Educação financeira simples
