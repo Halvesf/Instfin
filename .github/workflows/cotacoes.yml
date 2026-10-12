@@ -1,0 +1,109 @@
+# Robô de cotações do Pablo Finanças.
+# Roda sozinho no GitHub de hora em hora nos dias úteis, busca cotação, proventos e CDI
+# e salva o arquivo cotacoes.json ao lado do index.html. O app lê esse arquivo.
+# Para incluir um ativo novo, edite o tickers.txt (um código por linha).
+name: Cotações
+
+on:
+  schedule:
+    - cron: "7 13-21 * * 1-5"   # de hora em hora, 10h às 18h de Brasília, seg a sex
+    - cron: "30 23 * * *"       # uma vez à noite, todo dia (proventos e CDI)
+  workflow_dispatch:            # botão "Run workflow" para rodar na hora
+  push:
+    paths: ["**/tickers.txt"]   # roda sozinho quando você muda a lista
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cotacoes
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Buscar cotações, proventos e CDI
+        run: |
+          python3 - <<'PY'
+          import json, os, re, time, urllib.request, datetime as dt
+
+          UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36", "Accept": "application/json"}
+          def get(url, tent=3):
+              for i in range(tent):
+                  try:
+                      with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+                          return json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      err = e; time.sleep(2 + i * 3)
+              raise err
+
+          # pasta do app: onde está o index.html do Pablo Finanças
+          pasta = "."
+          for raiz, dirs, arqs in os.walk("."):
+              if ".git" in raiz: continue
+              if "index.html" in arqs and "pablo-financas" in open(os.path.join(raiz, "index.html"), encoding="utf-8", errors="ignore").read():
+                  pasta = raiz; break
+          print("pasta do app:", pasta)
+
+          lista = os.path.join(pasta, "tickers.txt")
+          tickers = []
+          if os.path.exists(lista):
+              for l in open(lista, encoding="utf-8"):
+                  t = re.sub(r"[^A-Z0-9]", "", l.split("#")[0].upper())
+                  if re.fullmatch(r"[A-Z]{4}\d{1,2}[A-Z]?", t) and t not in tickers: tickers.append(t)
+          print("tickers:", tickers)
+
+          saida = os.path.join(pasta, "cotacoes.json")
+          antigo = {}
+          if os.path.exists(saida):
+              try: antigo = json.load(open(saida, encoding="utf-8"))
+              except Exception: antigo = {}
+          ativos = {}
+
+          for t in tickers:
+              try:
+                  j = get(f"https://query1.finance.yahoo.com/v8/finance/chart/{t}.SA?range=5d&interval=1d")
+                  m = j["chart"]["result"][0]["meta"]
+                  preco = m.get("regularMarketPrice")
+                  ant = m.get("chartPreviousClose") or m.get("previousClose")
+                  closes = [c for c in (j["chart"]["result"][0].get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c]
+                  if len(closes) >= 2: ant = closes[-2]
+                  if not preco: raise ValueError("sem preço")
+                  a = {"preco": round(preco, 2), "var": round((preco / ant - 1) * 100, 2) if ant else 0,
+                       "nome": m.get("longName") or m.get("shortName") or "", "divs": []}
+                  try:
+                      d = get(f"https://query1.finance.yahoo.com/v8/finance/chart/{t}.SA?range=2y&interval=1mo&events=div")
+                      ev = (d["chart"]["result"][0].get("events") or {}).get("dividends") or {}
+                      divs = sorted(ev.values(), key=lambda x: -x["date"])[:24]
+                      a["divs"] = [{"rate": round(x["amount"], 6), "com": dt.datetime.fromtimestamp(x["date"], dt.timezone.utc).strftime("%Y-%m-%d")} for x in divs]
+                  except Exception as e:
+                      print(t, "proventos:", e)
+                      a["divs"] = (antigo.get("ativos", {}).get(t) or {}).get("divs", [])
+                  ativos[t] = a
+                  print(t, a["preco"], len(a["divs"]), "proventos")
+              except Exception as e:
+                  print(t, "falhou:", e)
+                  if t in antigo.get("ativos", {}): ativos[t] = antigo["ativos"][t]
+              time.sleep(1)
+
+          cdi = antigo.get("cdi")
+          try:
+              x = get("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json")[0]
+              cdi = {"v": float(str(x["valor"]).replace(",", ".")), "d": x["data"]}
+          except Exception as e:
+              print("CDI falhou:", e)
+
+          agora = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          json.dump({"atualizado": agora, "tickers": tickers, "ativos": ativos, "cdi": cdi},
+                    open(saida, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+          PY
+
+      - name: Salvar no repositório
+        run: |
+          git config user.name "robo-cotacoes"
+          git config user.email "robo-cotacoes@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "nada mudou" || (git commit -m "cotações $(date -u +%F\ %H:%M)" && git push)
