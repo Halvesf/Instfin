@@ -201,6 +201,7 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 .avatar-edit .ring{width:112px;height:112px}
 .avatar-edit .ring .in{font-size:36px}
 .avatar-edit .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.diag{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:12.5px}.diag div{display:flex;flex-direction:column;gap:2px}.diag span{color:var(--fg-3)}
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .foot{padding:18px 16px 8px;font-size:12px;color:var(--fg-3);line-height:1.6}
 .plist{display:flex;flex-direction:column}
@@ -917,7 +918,12 @@ async function addAuto(a){
 }
 async function comTempo(url, ms){
   const ac = new AbortController(); const t=setTimeout(()=>ac.abort(), ms||8000);
-  try{ const r = await fetch(url,{cache:"no-store",signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
+  try{
+    const r = await fetch(url,{cache:"no-store",signal:ac.signal});
+    if(!r.ok){ let msg=""; try{ const j=await r.json(); msg = j && (j.message||j.error||""); }catch(_){} throw new Error("HTTP "+r.status+(msg&&typeof msg==="string"?": "+msg:"")); }
+    return await r.json();
+  }
+  catch(e){ if(e && e.name==="AbortError") throw new Error("tempo esgotado"); if(e instanceof TypeError) throw new Error("bloqueado ou sem internet ("+e.message+")"); throw e; }
   finally{ clearTimeout(t); }
 }
 async function cotacaoDolar(){
@@ -1482,6 +1488,9 @@ function proventoPrevisto(at, ym){
   const doMes = divs.filter(x=>x.pag && x.pag.slice(0,7)===ym);
   if(doMes.length) return {valor: Math.round(doMes.reduce((t,x)=>t+x.rate,0)*100*q), data: doMes[0].pag, estim:false};
   if(divs.length) return {valor: Math.round(divs[0].rate*100*q), data: ym+"-15", estim:true};
+  if(at.provCota>0) return {valor: Math.round(at.provCota*q), data: ym+"-15", estim:true};
+  const ult = (at.prov||[]).slice().sort((x,y)=>x.d<y.d?1:-1)[0];
+  if(ult){ const qd=(at.ops||[]).filter(o=>o.d<=ult.d).reduce((t,o)=>t+o.qtd,0); if(qd>0) return {valor: Math.round(ult.valor/qd*q), data: ym+"-15", estim:true}; }
   return null;
 }
 const provDoMes = (at, ym) => (at.prov||[]).filter(p=>ymOf(p.d)===ym).reduce((t,p)=>t+p.valor,0);
@@ -1507,14 +1516,32 @@ async function movInvest(tipo, pid, valor, data, at, legenda){
 }
 
 /* ---------- dados de fora: CDI e cotações ---------- */
-async function atualizarCDI(){
-  if(S.cfg.cdi && S.cfg.cdi.chk===today()) return false;
+async function atualizarCDI(forcar){
+  if(!forcar && S.cfg.cdi && S.cfg.cdi.chk===today()) return false;
   try{
-    const j = await comTempo("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json");
+    const j = await comTempo("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json", 15000);
     const x = j && j[0]; const v = x && parseFloat(String(x.valor).replace(",","."));
-    if(v>0){ S.cfg.cdi = {v, d:x.data, chk:today(), fonte:"Banco Central"}; await salvarCfg(); return true; }
-  }catch(_){}
+    if(v>0){ S.cfg.cdi = {v, d:x.data, chk:today(), fonte:"Banco Central"}; S.cfg.cdiErro=""; await salvarCfg(); return true; }
+    S.cfg.cdiErro = "resposta sem valor";
+  }catch(e){ S.cfg.cdiErro = String(e && e.message || e); }
+  await salvarCfg();
   return false;
+}
+async function testarConexoes(){
+  const out = [], tok = (S.cfg.brapiToken||"").trim();
+  const ok1 = await atualizarCDI(true).catch(()=>false);
+  out.push({nome:"CDI do Banco Central", ok:!!ok1, msg: ok1 ? String(S.cfg.cdi.v).replace(".",",")+"% a.a. ("+S.cfg.cdi.d+")" : (S.cfg.cdiErro||"falhou")+(S.cfg.cdiManual?" · usando o manual de "+S.cfg.cdiManual+"%":" · preencha o CDI manual abaixo")});
+  if(!tok){ out.push({nome:"brapi", ok:false, msg:"Nenhum token colado. Crie grátis em brapi.dev/dashboard e cole acima."}); return out; }
+  const t = (S.inv.find(a=>a.tipo==="rv")||{}).ticker || "PETR4";
+  const url = "https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?token="+encodeURIComponent(tok);
+  try{ const j = await comTempo(url, 10000); const r=j&&j.results&&j.results[0];
+    out.push({nome:"Cotação "+t, ok:!!(r&&r.regularMarketPrice), msg: r&&r.regularMarketPrice ? "R$ "+String(r.regularMarketPrice.toFixed(2)).replace(".",",") : "veio sem preço"}); }
+  catch(e){ const m=String(e.message||e); out.push({nome:"Cotação "+t, ok:false, msg: /401|403/.test(m)?"Token recusado ("+m+"). Confira se colou inteiro, sem espaço.":m}); }
+  try{ const j = await comTempo(url+"&dividends=true", 10000); const r=j&&j.results&&j.results[0]; const n=((r&&r.dividendsData&&r.dividendsData.cashDividends)||[]).length;
+    out.push({nome:"Proventos "+t, ok:n>0, msg: n ? n+" pagamentos encontrados" : "a brapi respondeu sem proventos: registre o último manualmente e eu estimo a partir dele"}); }
+  catch(e){ out.push({nome:"Proventos "+t, ok:false, msg:"Seu plano da brapi não libera proventos ("+String(e.message||e)+"). A cotação funciona; registre o último provento e eu estimo os próximos."}); }
+  await atualizarCotacoes(true);
+  return out;
 }
 async function atualizarCotacoes(forcar){
   const tickers = [...new Set(S.inv.filter(a=>a.tipo==="rv").map(a=>a.ticker))];
@@ -1522,19 +1549,24 @@ async function atualizarCotacoes(forcar){
   if(!tickers.length || !tok) return {ok:false, motivo: !tok ? "sem token" : "sem ativos"};
   if(!forcar && Date.now()-(S.cfg.cotTs||0) < 30*60e3) return {ok:true, cache:true};
   const novo = Object.assign({}, S.cfg.cot||{}); let ok=0, erro="";
+  const base = t => "https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?token="+encodeURIComponent(tok);
   for(const t of tickers){
     try{
-      const j = await comTempo("https://brapi.dev/api/quote/"+encodeURIComponent(t)+"?dividends=true&token="+encodeURIComponent(tok), 10000);
+      let j, semDiv = false;
+      try{ j = await comTempo(base(t)+"&dividends=true", 10000); }
+      catch(e1){ semDiv = true; j = await comTempo(base(t), 10000); }
       const r = j && j.results && j.results[0];
+      if(semDiv) erro = erro || "proventos indisponíveis no seu plano da brapi (só a cotação veio)";
       if(r && r.regularMarketPrice){
         const cd = (r.dividendsData && r.dividendsData.cashDividends) || [];
         novo[t] = {preco:Math.round(r.regularMarketPrice*100), varDia:+r.regularMarketChangePercent||0, nome:r.longName||r.shortName||"", ts:Date.now(),
           divs: cd.filter(x=>x.rate>0).slice(0,24).map(x=>({rate:+x.rate, pag:(x.paymentDate||"").slice(0,10), com:(x.lastDatePrior||"").slice(0,10), label:x.label||""}))};
+        if(semDiv && cot(t) && cot(t).divs) novo[t].divs = cot(t).divs;
         ok++;
-      }
-    }catch(e){ erro = String(e && e.message || e); }
+      } else erro = erro || (t+": não encontrado na brapi");
+    }catch(e){ erro = t+": "+String(e && e.message || e); }
   }
-  S.cfg.cot = novo; if(ok) S.cfg.cotTs = Date.now(); await salvarCfg();
+  S.cfg.cot = novo; if(ok) S.cfg.cotTs = Date.now(); S.cfg.cotErro = erro; await salvarCfg();
   return {ok: ok>0, n:ok, total:tickers.length, erro};
 }
 
@@ -1551,7 +1583,7 @@ function viewCarteira(p){
     h += rf.map(a=>{ const b=valorRF(a,today()), l=liquidoRF(a,today()), rm=rendRF(a, ym+"-01", today());
       const dia = Math.round(b*taxaDia(a)*(a.isento?1:.85));
       return '<div class="acard"><div class="ahead"><span class="mid"><b>'+esc(a.nome)+'</b><small>'+(a.sub?esc(a.sub)+' · ':'')+(a.banco?esc(a.banco)+' · ':'')+(a.pct||100)+'% do CDI'+(a.isento?' · isento de IR':'')+'</small></span><button class="ibtn" data-a="inv-rf-edit" data-id="'+esc(a.id)+'" aria-label="Editar '+esc(a.nome)+'">'+I.edit+'</button></div>'
-        +'<div class="kv"><span>Valor bruto (estimado)</span><b class="num">'+money(b)+'</b>'+(a.isento?'':'<span>Líquido se resgatar hoje</span><b class="num">'+money(l)+'</b>')+'<span>Rendeu este mês</span><b class="num pos">+'+money(Math.round(rm))+'</b><span>Rende por dia útil</span><b class="num">~'+money(dia)+'</b></div>'
+        +'<div class="kv"><span>Valor bruto (estimado)</span><b class="num">'+money(b)+'</b>'+(a.isento?'':'<span>Líquido se resgatar hoje</span><b class="num">'+money(l)+'</b>')+'<span>Rendeu este mês</span><b class="num pos">+'+money(Math.round(rm))+'</b>'+(Math.round(rm)===0?'<span style="grid-column:1/-1;font-size:11.5px;color:var(--fg-3)">'+(!cdiAno()?'Sem CDI, não consigo calcular: defina em Ajustes → Investimentos.':'Começa a contar a partir do próximo dia útil depois do cadastro ou da última conferência.')+'</span>':'')+'<span>Rende por dia útil</span><b class="num">~'+money(dia)+'</b></div>'
         +'<div class="three"><button class="btn" data-a="inv-rf-op" data-op="aplicar" data-id="'+esc(a.id)+'">Aplicar</button><button class="btn" data-a="inv-rf-op" data-op="resgatar" data-id="'+esc(a.id)+'">Resgatar</button><button class="btn" data-a="inv-rf-conf" data-id="'+esc(a.id)+'">Conferir</button></div></div>'; }).join("");
   }
   if(rv.length){
@@ -1627,7 +1659,9 @@ function renderInv(){
   if(f.modo!=="b3" || f.preview) h += '<div class="field" style="padding-top:14px"><button class="btn pri block" data-a="inv-salvar">'+({"rf-conf":"Salvar saldo","prov":"Registrar provento","b3":"Importar para o "+(p?esc(p.curto):"")}[f.modo]||"Salvar")+'</button>'
      + ((f.modo==="rf-edit"||f.modo==="rv-edit") ? (f.confirmDel?'<div class="confirm" style="margin:8px 0 0"><span>Apagar da carteira? O dinheiro não volta para o caixa.</span><div class="row"><button class="btn" data-a="inv-del-cancel">Cancelar</button><button class="btn danger" data-a="inv-del">Apagar</button></div></div>':'<button class="btn danger" data-a="inv-del-pedir" style="margin-top:6px">Apagar da carteira</button>') : '')+'</div>';
   h += '</div>';
-  const sh = document.getElementById("sheet"); const st = sh.scrollTop; sh.innerHTML = h; sh.scrollTop = st;
+  const sh = document.getElementById("sheet"); const st = sh.scrollTop; const foco = document.activeElement && sh.contains(document.activeElement) ? document.activeElement.id : "";
+  sh.innerHTML = h; sh.scrollTop = st;
+  if(foco){ const el=document.getElementById(foco); if(el){ el.focus({preventScroll:true}); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(_){} } }
 }
 async function salvarInv(){
   const f = S.invForm, hj = today(), at0 = f.id ? S.inv.find(x=>x.id===f.id) : null;
@@ -1804,7 +1838,7 @@ function slidesFII(a){
     +(semCot?'<span class="muted">Sem cotação para alguns ativos: cole o token da brapi em Ajustes → Investimentos. Enquanto isso, uso o preço médio.</span>':'')));
   let prevTot=0;
   s.push(sl("#2A1608", '<span class="lbl">Proventos de '+MESES[Number(ym.slice(5))-1]+'</span><div class="lst">'+rv.map(x=>{ const rec=provDoMes(x,ym), pp=proventoPrevisto(x,ym); prevTot += rec || (pp?pp.valor:0);
-      return li(esc(x.ticker), rec?'recebido':pp?((pp.estim?'estimado pelo último · ':'')+'pagamento '+dataBR(pp.data)):'sem dados de provento',
+      return li(esc(x.ticker), rec?'recebido':pp?((pp.estim?'estimado pelo último · ':'')+'pagamento '+dataBR(pp.data)):(cot(x.ticker)?'a brapi não trouxe proventos · registre o último':'sem cotação'+(S.cfg.cotErro?': '+esc(S.cfg.cotErro):S.cfg.brapiToken?'':': falta o token')),
         '<span class="num">'+money(rec||(pp?pp.valor:0))+'</span>'+(rec?'<span class="chipv up">recebido</span>':(a.vivo?'<button class="btn mini" data-a="inv-prov" data-id="'+esc(x.id)+'">Registrar</button>':''))); }).join("")+'</div>'
     +'<span class="muted">Total do mês: '+money(prevTot)+'. Quando cair na conta, toque em Registrar: o valor entra no caixa e vira post.</span>'));
   const renda = rendaPassivaMes().fii;
@@ -1907,8 +1941,8 @@ function viewAjustes(){
       .map(([s,t,d])=>'<button data-a="setup" data-s="'+s+'"><span><b style="display:block;font-size:14px">'+t+'</b><span style="font-size:12px;color:var(--fg-3)">'+d+'</span></span>'+I.r+'</button>').join("")
     + '<button data-a="setup" data-s="0"><span><b style="display:block;font-size:14px">Assistente completo</b><span style="font-size:12px;color:var(--fg-3)">Refazer do começo, com opção de apagar os testes</span></span>'+I.r+'</button></div>';
   h += '<div class="sec">Investimentos</div>';
-  h += '<div class="field"><label for="aj-token">Token da brapi (cotações e proventos)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Fica guardado só neste aparelho. O app envia à brapi apenas o código dos seus ativos.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span><button class="btn" data-a="inv-atualizar" style="align-self:flex-start">Atualizar cotações agora</button></div>';
-  h += '<div class="field"><label for="aj-cdi">CDI anual manual (opcional)</label><input id="aj-cdi" class="inp num" type="number" inputmode="decimal" step="0.01" min="0" max="50" placeholder="Automático" value="'+(S.cfg.cdiManual||"")+'" style="max-width:160px"><span class="help">'+(S.cfg.cdi?'Banco Central: '+String(S.cfg.cdi.v).replace(".",",")+'% a.a. em '+esc(S.cfg.cdi.d)+'. ':'Ainda não consegui buscar o CDI do Banco Central. ')+'Preencha só se quiser usar outro valor.</span></div>';
+  h += '<div class="field"><label for="aj-token">Token da brapi (cotações e proventos)</label><input id="aj-token" class="inp" autocomplete="off" spellcheck="false" placeholder="Cole aqui o token de brapi.dev/dashboard" value="'+esc(S.cfg.brapiToken||"")+'"><span class="help">Fica guardado só neste aparelho. O app envia à brapi apenas o código dos seus ativos.'+(S.cfg.cotTs?' Última atualização: '+new Date(S.cfg.cotTs).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'.':'')+'</span>'+(S.cfg.cotErro?'<span class="help" style="color:#FF8A96">Último problema: '+esc(S.cfg.cotErro)+'</span>':'')+'<div class="two"><button class="btn" data-a="inv-atualizar">Atualizar cotações agora</button><button class="btn" data-a="inv-testar">Testar conexões</button></div>'+(S.diag?'<div class="diag">'+S.diag.map(d=>'<div><b style="color:'+(d.ok?'var(--ok)':'#FF8A96')+'">'+(d.ok?'✓':'✕')+' '+esc(d.nome)+'</b><span>'+esc(d.msg)+'</span></div>').join("")+'</div>':'')+'</div>';
+  h += '<div class="field"><label for="aj-cdi">CDI anual manual (opcional)</label><input id="aj-cdi" class="inp num" type="number" inputmode="decimal" step="0.01" min="0" max="50" placeholder="Automático" value="'+(S.cfg.cdiManual||"")+'" style="max-width:160px"><span class="help">'+(S.cfg.cdi?'Banco Central: '+String(S.cfg.cdi.v).replace(".",",")+'% a.a. em '+esc(S.cfg.cdi.d)+'. ':'Ainda não consegui buscar o CDI do Banco Central'+(S.cfg.cdiErro?' ('+esc(S.cfg.cdiErro)+')':'')+'. Enquanto isso, preencha aqui (hoje fica perto de 14,9). ')+'Preencha só se quiser usar outro valor.</span></div>';
   h += '<div class="sec">Reserva de emergência</div>';
   h += '<div class="field"><label for="aj-meses">Quantos meses de gastos ficam intocáveis</label><input id="aj-meses" class="inp num" type="number" inputmode="numeric" min="0" max="36" step="1" value="'+esc(S.cfg.reservaMeses)+'" style="max-width:140px"><span class="help">Usado pela aba de Projeção e pelo poder de compra, que chegam nas próximas etapas. Cada pessoa define o seu.</span></div>';
   let ult = null; try{ ult = localStorage.getItem("ultimoBackup"); }catch(_){}
@@ -2541,7 +2575,8 @@ document.addEventListener("click", e=>{
     case "inv-del-pedir": S.invForm.confirmDel=true; renderInv(); break;
     case "inv-del-cancel": S.invForm.confirmDel=false; renderInv(); break;
     case "inv-del": (async()=>{ await apagarAtivo(S.invForm.id); fecharInv(); render(); toast("Removido da carteira"); })(); break;
-    case "inv-atualizar": (async()=>{ toast("Buscando cotações…"); const r=await atualizarCotacoes(true); render(); toast(r.ok?"Cotações atualizadas ("+r.n+" de "+r.total+")":r.motivo==="sem token"?"Cole o token da brapi primeiro.":r.motivo==="sem ativos"?"Nenhum FII ou ação cadastrado.":"Não consegui buscar: confira o token e a internet."); })(); break;
+    case "inv-testar": (async()=>{ toast("Testando…"); S.diag = await testarConexoes(); render(); })(); break;
+    case "inv-atualizar": (async()=>{ toast("Buscando cotações…"); const r=await atualizarCotacoes(true); render(); toast(r.ok?"Cotações atualizadas ("+r.n+" de "+r.total+")":r.motivo==="sem token"?"Cole o token da brapi primeiro.":r.motivo==="sem ativos"?"Nenhum FII ou ação cadastrado.":"Não consegui: "+(r.erro||"confira o token e a internet")); })(); break;
     case "lemb-novo": abrirLemb(null); break;
     case "lemb-editar": abrirLemb(b.dataset.id); break;
     case "lemb-cancelar": S.lform=null; render(); break;
@@ -2615,7 +2650,7 @@ document.addEventListener("change", e=>{
     if(t.id==="i-isento"){ f.isento=t.checked; return; }
     if(t.id==="i-mover"){ f.mover=t.checked; return; }
     if(t.id==="i-data"){ if(f.modo==="rf-novo"||f.modo==="rf-edit") f.dataAplic=t.value; else f.data=t.value; return; }
-    if(t.id==="i-qtd"){ f.qtd=t.value; renderInv(); return; }
+    if(t.id==="i-qtd"){ f.qtd=t.value; setTimeout(renderInv, 0); return; }
     if(t.id==="b3-arq" && t.files && t.files[0]){ const file=t.files[0]; f.arquivo=file.name; f.lendo=true; f.err=""; f.preview=null; renderInv();
       lerB3(file).then(r=>{ f.lendo=false; f.preview=r; renderInv(); }).catch(e=>{ f.lendo=false; f.err=String(e.message||e); renderInv(); }); return; }
   }

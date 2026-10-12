@@ -120,6 +120,14 @@ Cada versão nova do `sw.js` já vem com o número de versão aumentado. É isso
 - **Importar da B3:** baixe o extrato de Movimentação (e, se quiser, o de Posição) na Área do Investidor e importe na aba Carteira.
 - Robôs **@rendimentos** e **@fii**. O @reserva passa a contar a carteira, e o @horizonte inclui os rendimentos.
 
+## Quando os dados não aparecem
+
+Ajustes → Investimentos → **Testar conexões** mostra o que funcionou e o que falhou:
+- **CDI do Banco Central:** se falhar, preencha o CDI manual logo abaixo. Sem CDI a renda fixa fica em R$ 0,00.
+- **Cotação:** "token recusado" significa token errado ou incompleto.
+- **Proventos:** se o plano grátis da brapi não liberar, registre o último provento do FII e o app estima os próximos a partir dele.
+- A renda fixa começa a render no próximo dia útil depois do cadastro ou da última conferência.
+
 ## Próximas etapas
 
 4. Projeção ("e se?"), lista de desejos e @poderdecompra
