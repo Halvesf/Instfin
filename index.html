@@ -2797,7 +2797,9 @@ function montarCfg(c){
   if(follow.lembretes && !follow.contas) follow.contas = follow.lembretes;
   delete follow.lembretes;
   if(!plano.reservaPers && S.pers.some(x=>x.id==="reserva")) plano.reservaPers = "reserva";
-  return Object.assign(p, {
+  /* guarda tudo que já estava salvo (sites seguidos, stories vistos, avisos…) e só normaliza o que precisa */
+  const extra = Object.assign({}, c); delete extra.bots;
+  return Object.assign(p, extra, {
     reservaMeses: c.reservaMeses!=null ? c.reservaMeses : p.reservaMeses,
     follow, plano,
     lembretes: [],
@@ -3033,7 +3035,7 @@ function arteDe(a){ const f = ARTES[a.bot]; if(!f) return ""; try{ const h = f(a
 /* ---------- notícias, vídeos e mercado (o robô do GitHub busca; aqui você escolhe o que seguir) ---------- */
 async function carregarConteudo(forcar){
   if(!S.cont && IDB.db){ try{ S.cont = await IDB.get("cfg","conteudo") || null; }catch(_){} }
-  if(!forcar && S.cont && Date.now()-(S.cont._chk||0) < 15*60e3) return false;
+  if(!forcar && S.cont && Date.now()-(S.cont._chk||0) < 5*60e3) return false;
   const r = repoInfo(), urls = [];
   if(r) urls.push("https://raw.githubusercontent.com/"+r.dono+"/"+r.repo+"/main/"+repoArq(r,"conteudo.json")+"?t="+Date.now());
   urls.push("conteudo.json?t="+Date.now());
@@ -3061,6 +3063,7 @@ function fonteAv(f, grande){
   const ini = esc(((f&&f.nome)||"?").replace(/[^A-Za-zÀ-ú0-9]/g,"").charAt(0).toUpperCase());
   return '<span class="f-av '+(f&&f.tipo==="canal"?"redondo":"")+(grande?" grande":"")+'" aria-hidden="true">'+(f&&f.avatar?'<img src="'+esc(f.avatar)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'<b>'+ini+'</b></span>';
 }
+const semRodape = t => String(t||"").replace(/\s*(The post\b|O post\b|Post\b.{0,80}\bapareceu primeiro)[\s\S]*$/,"").replace(/\s*\[(…|\.\.\.)\]\s*$/,"…");
 const milhar = n => n>=1e6 ? (n/1e6).toFixed(1).replace(".",",")+" mi" : n>=1e3 ? Math.round(n/1e3)+" mil" : String(n);
 function cardConteudo(it){
   const f = fonteDe(it.fonte) || {nome:"Fonte", tipo:it.tipo==="video"?"canal":"noticia"};
@@ -3076,7 +3079,7 @@ function cardConteudo(it){
   } else {
     h += '<button class="c-link" data-a="ler" data-id="'+esc(it.id)+'">'
       + (it.img ? '<span class="c-img"><img src="'+esc(it.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'sem\');this.remove()"></span>' : '<span class="c-img sem"><span>'+esc(f.nome)+'</span></span>')
-      + '<span class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(it.resumo)+'</span>':'')+'<span class="c-ler">'+((it.texto&&it.texto.length)?'Ler aqui · '+Math.max(1,Math.round(it.texto.join(" ").split(/\s+/).length/200))+' min':'Ver resumo')+'</span></span></button>';
+      + '<span class="c-body"><b class="c-tit">'+esc(it.titulo)+'</b>'+(it.resumo?'<span class="c-res">'+esc(semRodape(it.resumo))+'</span>':'')+'<span class="c-ler">'+((it.texto&&it.texto.length)?'Ler aqui · '+Math.max(1,Math.round(it.texto.join(" ").split(/\s+/).length/200))+' min':'Ver resumo')+'</span></span></button>';
   }
   return h + '</article>';
 }
@@ -3124,7 +3127,7 @@ function viewLer(){
     + '<button class="btn seg mini '+(segueFonte(it.fonte)?"on":"")+'" data-a="seguir-fonte" data-f="'+esc(it.fonte)+'">'+(segueFonte(it.fonte)?"Seguindo":"Seguir")+'</button></div>'
     + '<h2 class="ler-tit">'+esc(it.titulo)+'</h2>'
     + (meus.length?'<div class="c-tag" style="margin:0 0 14px">'+I.alert+'<span>Fala do seu '+meus.map(esc).join(", ")+'</span></div>':'');
-  const ps = (it.texto&&it.texto.length) ? it.texto : (it.resumo ? [it.resumo] : []);
+  const ps = (it.texto&&it.texto.length) ? it.texto : (it.resumo ? [semRodape(it.resumo)] : []);
   h += ps.map(p=>'<p class="ler-p">'+esc(p)+'</p>').join("");
   if(it.tipo!=="video") h += '<p class="ler-nota">'+(it.texto&&it.texto.length?'Trecho publicado por '+esc(f.nome)+'. A matéria completa está no site.':'O site só publicou este resumo. A matéria completa está no site.')+'</p>';
   h += '<a class="btn" style="width:100%;margin-top:6px" href="'+esc(it.link)+'" target="_blank" rel="noopener noreferrer">'+(it.tipo==="video"?"Abrir no YouTube":"Ler a matéria completa em "+esc(f.nome))+' ↗</a></div>';
@@ -3308,7 +3311,8 @@ document.addEventListener("click", e=>{
     case "pedir-apagar": S.del=b.dataset.id; S.menu=null; render(); break;
     case "fonte": S.fonte=b.dataset.f; S.view="fonte"; S.tocando=null; render(); window.scrollTo(0,0); break;
     case "seguir-fonte": { const id=b.dataset.f, sim=!segueFonte(id); seguirFonte(id, sim).then(()=>{ render(); toast(sim?"Seguindo "+((fonteDe(id)||{}).nome||""):"Deixou de seguir"); }); break; }
-    case "ler": if(S.view!=="ler") S.voltarLer = S.view; S.ler=b.dataset.id; S.view="ler"; render(); window.scrollTo(0,0); break;
+    case "ler": if(S.cont && Date.now()-(S.cont._chk||0) > 5*60e3) carregarConteudo(true).then(m=>{ if(m && !S.story) render(); });
+      if(S.view!=="ler") S.voltarLer = S.view; S.ler=b.dataset.id; S.view="ler"; render(); window.scrollTo(0,0); break;
     case "mais-feed": S.feedN=(S.feedN||25)+25; render(); break;
     case "story-abrir": abrirStory(b.dataset.k); break;
     case "story-fechar": fecharStory(); break;

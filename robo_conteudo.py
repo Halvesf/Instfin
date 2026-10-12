@@ -16,6 +16,7 @@ NS = {"content": "http://purl.org/rss/1.0/modules/content/", "media": "http://se
       "atom": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015"}
 def limpa(t, n=220):
     t = html.unescape(re.sub(r"<[^>]+>", " ", t or "")); t = re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"\s*(The post\b.*?appeared first on.*|O post\b.*?apareceu primeiro em.*)$", "", t)
     return (t[:n-1] + "…") if len(t) > n else t
 def img_de(*htmls):
     for h in htmls:
@@ -37,16 +38,27 @@ def paragrafos(h, maxp=8, maxc=1800):
         ps.append(t); total += len(t)
         if len(ps) >= maxp or total >= maxc: break
     return ps
+UNID = {"second": 1, "segundo": 1, "minute": 60, "minuto": 60, "hour": 3600, "hora": 3600, "day": 86400, "dia": 86400,
+        "week": 604800, "semana": 604800, "month": 2592000, "mês": 2592000, "mes": 2592000, "meses": 2592000, "year": 31536000, "ano": 31536000}
 def tempo_rel(txt):
-    m = re.search(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", txt or "")
-    if not m: return int(time.time() * 1000)
-    seg = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 604800, "month": 2592000, "year": 31536000}[m.group(2)]
-    return int((time.time() - int(m.group(1)) * seg) * 1000)
+    """'2 days ago', 'Streamed 5 hours ago', 'há 2 dias', '3 semanas atrás' -> timestamp; None se não achar"""
+    t = (txt or "").lower()
+    m = re.search(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago", t) or \
+        re.search(r"(?:há\s+)?(\d+)\s+(segundo|minuto|hora|dia|semana|meses|mês|mes|ano)s?(?:\s+atrás)?", t)
+    if not m: return None
+    return int((time.time() - int(m.group(1)) * UNID[m.group(2)]) * 1000)
 def views_txt(txt):
-    m = re.search(r"([\d.,]+)\s*([KMB]?)\s+views", txt or "")
-    if not m: return 0
-    n = float(m.group(1).replace(",", "")) if not m.group(2) else float(m.group(1).replace(",", "."))
-    return int(n * {"": 1, "K": 1e3, "M": 1e6, "B": 1e9}[m.group(2)])
+    t = (txt or "")
+    m = re.search(r"([\d.,]+)\s*([KMB]?)\s+views", t)
+    if m:
+        n = float(m.group(1).replace(",", "")) if not m.group(2) else float(m.group(1).replace(",", "."))
+        return int(n * {"": 1, "K": 1e3, "M": 1e6, "B": 1e9}[m.group(2)])
+    m = re.search(r"([\d.,]+)\s*(mil|mi|bi)?\s*(?:de\s+)?visualiza", t)
+    if m:
+        n = float(m.group(1).replace(".", "").replace(",", ".")) if m.group(2) else float(m.group(1).replace(".", "").replace(",", ""))
+        return int(n * {None: 1, "mil": 1e3, "mi": 1e6, "bi": 1e9}[m.group(2)])
+    return 0
+AMOSTRA = []
 def videos_da_pagina(url):
     """lê a aba Vídeos do canal (quando o feed RSS do YouTube falha)"""
     h = baixar(url + ("&" if "?" in url else "?") + "hl=en&gl=US").decode("utf-8", "ignore")
@@ -59,12 +71,22 @@ def videos_da_pagina(url):
             if "runs" in o: return "".join(r.get("text", "") for r in o["runs"])
             if "content" in o: return o["content"]
         return ""
+    def textos(o, acc=None):
+        acc = [] if acc is None else acc
+        if isinstance(o, dict):
+            for k, x in o.items():
+                if k in ("content", "simpleText", "text", "label") and isinstance(x, str) and len(x) < 120: acc.append(x)
+                else: textos(x, acc)
+        elif isinstance(o, list):
+            for x in o: textos(x, acc)
+        return acc
     def anda(o):
         if len(out) >= 12: return
         if isinstance(o, dict):
             if "videoRenderer" in o:
-                v = o["videoRenderer"]
-                out.append({"vid": v.get("videoId"), "titulo": txt(v.get("title")), "quando": txt(v.get("publishedTimeText")), "views": txt(v.get("viewCountText")), "desc": txt(v.get("descriptionSnippet"))})
+                v = o["videoRenderer"]; tudo = " | ".join(textos(v))
+                out.append({"vid": v.get("videoId"), "titulo": txt(v.get("title")), "quando": txt(v.get("publishedTimeText")) + " | " + tudo, "views": txt(v.get("viewCountText")) + " | " + tudo, "desc": txt(v.get("descriptionSnippet"))})
+                if len(AMOSTRA) < 1: AMOSTRA.append(tudo[:600])
                 return
             if "lockupViewModel" in o:
                 v = o["lockupViewModel"]
@@ -73,7 +95,9 @@ def videos_da_pagina(url):
                     partes = []
                     for row in (((md.get("metadata") or {}).get("contentMetadataViewModel") or {}).get("metadataRows") or []):
                         for p in row.get("metadataParts") or []: partes.append(txt(p.get("text")))
-                    out.append({"vid": v.get("contentId"), "titulo": txt(md.get("title")), "quando": " ".join(partes), "views": " ".join(partes), "desc": ""})
+                    tudo = " | ".join(partes + textos(v))
+                    out.append({"vid": v.get("contentId"), "titulo": txt(md.get("title")), "quando": tudo, "views": tudo, "desc": ""})
+                    if len(AMOSTRA) < 1: AMOSTRA.append(tudo[:600])
                 return
             for x in o.values(): anda(x)
         elif isinstance(o, list):
@@ -162,9 +186,12 @@ for l in linhas:
             except Exception as e_rss:
                 print(nome, "feed do YouTube falhou (", e_rss, "), lendo a página do canal")
                 raiz = None
-                for v in videos_da_pagina(f"https://www.youtube.com/channel/{cid}/videos")[:10]:
-                    novos.append({"id": "v" + v["vid"], "fonte": fid, "tipo": "video", "titulo": limpa(v["titulo"], 200), "link": f"https://www.youtube.com/watch?v={v['vid']}",
-                                  "img": f"https://i.ytimg.com/vi/{v['vid']}/hqdefault.jpg", "videoId": v["vid"], "ts": tempo_rel(v["quando"]), "resumo": limpa(v["desc"], 180),
+                ant_ts = {x["id"]: x["ts"] for x in itens_old.get(fid, []) if x.get("tsOk")}
+                for pos, v in enumerate(videos_da_pagina(f"https://www.youtube.com/channel/{cid}/videos")[:10]):
+                    vid_id = "v" + v["vid"]; t_rel = tempo_rel(v["quando"])
+                    ts_v = t_rel or ant_ts.get(vid_id) or int((time.time() - 86400 * 3 * (pos + 1)) * 1000)
+                    novos.append({"id": vid_id, "fonte": fid, "tipo": "video", "titulo": limpa(v["titulo"], 200), "link": f"https://www.youtube.com/watch?v={v['vid']}", "tsOk": bool(t_rel or vid_id in ant_ts),
+                                  "img": f"https://i.ytimg.com/vi/{v['vid']}/hqdefault.jpg", "videoId": v["vid"], "ts": ts_v, "resumo": limpa(v["desc"], 180),
                                   "views": views_txt(v["views"]), "short": False, "tickers": sorted(set(TICK.findall(v["titulo"])))[:6]})
             for e in (raiz.findall("atom:entry", NS)[:10] if raiz is not None else []):
                 vid = e.findtext("yt:videoId", namespaces=NS); titulo = limpa(e.findtext("atom:title", namespaces=NS), 200)
@@ -202,6 +229,6 @@ except Exception as e: print("Selic falhou:", e)
 
 itens.sort(key=lambda x: -x["ts"])
 agora = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-json.dump({"atualizado": agora, "fontes": fontes, "itens": itens, "mercado": mercado},
+json.dump({"atualizado": agora, "fontes": fontes, "itens": itens, "mercado": mercado, "_amostraVideo": AMOSTRA[:1]},
           open(saida, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print("conteúdo:", len(fontes), "fontes,", len(itens), "itens")
