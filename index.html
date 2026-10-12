@@ -287,10 +287,11 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 /* carrossel */
 .car{position:relative}
 .car .cnt{position:absolute;top:12px;right:12px;z-index:2;padding:4px 10px;border-radius:999px;background:rgba(14,16,22,.85);font-size:12px;color:var(--fg)}
-.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.slides{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;transition:height .25s ease}
+.lnk{border:0;background:transparent;padding:2px 0;font-size:11px;color:var(--fg-3);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:24px}
 .slides::-webkit-scrollbar{display:none}
 .slides:focus-visible{outline:2px solid #DCE6FF;outline-offset:-2px}
-.slide{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;min-height:320px;padding:24px 20px 22px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(110% 90% at 100% 0%, var(--glow,#12233F) 0%, rgba(5,6,10,.3) 65%);min-width:0}
+.slide{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;min-height:220px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(110% 90% at 100% 0%, var(--glow,#12233F) 0%, rgba(5,6,10,.3) 65%);min-width:0}
 .slide .lbl{font-size:12px;color:var(--fg-3);letter-spacing:1.2px;text-transform:uppercase;padding-right:56px}
 .slide .big{font-size:38px;font-weight:500;letter-spacing:-1.5px;line-height:1.1}
 .slide .txt{font-size:15px;line-height:1.5;color:var(--fg);max-width:36ch}
@@ -301,7 +302,11 @@ textarea.inp{padding:12px 14px;min-height:84px;resize:vertical;line-height:1.5}
 .kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:13px;color:var(--fg-2)}
 .kv b{font-weight:500;text-align:right}
 .lst{display:flex;flex-direction:column}
-.li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.li .end{display:grid!important;grid-template-columns:auto auto;align-items:center;justify-items:end;column-gap:8px;row-gap:2px}
+.li .end .num{grid-column:1}
+.li .end .chipv,.li .end .lnk{grid-column:1}
+.li .end .btn.mini{grid-column:2;grid-row:1 / span 3}
 .li:last-child{border-bottom:0}
 .li .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .li .mid b{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1009,7 +1014,7 @@ function efeito(x, pid){
 }
 const efeitoGrupo = (x, ids) => ids.reduce((s,id)=>s+efeito(x,id),0);
 /* o que tem data anterior ao dia em que você informou os saldos já está dentro deles */
-const antesDoApp = p => !!PL().desde && p.data < PL().desde && !movDoPrev(p.key);
+const antesDoApp = p => !!PL().desde && p.data < PL().desde && !movDoPrev(p.key) && !(PL().abertos||[]).includes(p.key);
 const aberto = p => !p.incerto && !p.pendente && !movDoPrev(p.key) && !antesDoApp(p);
 function fimDoMes(pid, ym){
   let s = saldo(pid);
@@ -1068,7 +1073,8 @@ const li = (nome, sub, dir) => '<div class="li"><span class="mid"><b>'+nome+'</b
 function statusPrev(p){
   const m = movDoPrev(p.key), hj = today();
   if(m) return '<span class="chipv up">'+(p.tipo==="entrada"?"recebido":p.tipo==="transfer"?"feito":"pago")+'</span>';
-  if(antesDoApp(p)) return '<span class="chipv flat">já no saldo</span>';
+  if(antesDoApp(p)) return '<span class="chipv flat">já no saldo</span><button class="lnk" data-a="reabrir" data-k="'+esc(p.key)+'">'+(p.tipo==="entrada"?"ainda não recebi":p.tipo==="transfer"?"ainda não transferi":"ainda não paguei")+'</button>';
+  if((PL().abertos||[]).includes(p.key) && !movDoPrev(p.key) && p.data<PL().desde) return (p.data<hj?'<span class="chipv down">atrasado</span>':'<span class="chipv flat">a pagar</span>')+'<button class="lnk" data-a="fechar-antes" data-k="'+esc(p.key)+'">já estava no saldo</button>';
   if(p.pendente) return '<span class="chipv flat">pendente</span>';
   if(p.incerto) return '<span class="chipv flat">incerto</span>';
   if(p.data<hj) return '<span class="chipv down">atrasado</span>';
@@ -1114,11 +1120,26 @@ function slidesMeuMes(a){
   if(a.vivo){
     const atual = ids.reduce((t,id)=>t+saldo(id),0);
     const fim = ids.reduce((t,id)=>t+fimDoMes(id,ym),0);
-    let rec=0, pag=0;
-    for(const p of prev) if(aberto(p)){ const e=efeitoGrupo(p,ids); if(e>0) rec+=e; else pag-=e; }
+    const E = {tot:0, foi:0, falta:0}, G = {tot:0, foi:0, antes:0, falta:0};
+    for(const p of prev){
+      if(p.pendente || p.incerto) continue;
+      const e = efeitoGrupo(p, ids); if(!e) continue;
+      const alvo = e>0 ? E : G, v = Math.abs(e);
+      alvo.tot += v;
+      if(movDoPrev(p.key)) alvo.foi += v;
+      else if(antesDoApp(p)){ if(alvo===G) G.antes += v; else alvo.foi += v; }
+      else alvo.falta += v;
+    }
+    const internas = prev.filter(p=>p.tipo==="transfer" && ids.includes(p.de) && ids.includes(p.para) && !p.pendente).reduce((t,p)=>t+p.valor,0);
     s.push(sl("#12233F", '<span class="lbl">Sobra prevista no fim de '+mes+'</span><span class="big num" style="color:'+(fim<0?"#FF8A96":"var(--fg)")+'">'+money(fim)+'</span>'
-      +'<div class="kv"><span>Hoje</span><b class="num">'+money(atual)+'</b><span>A receber</span><b class="num pos">+'+money(rec)+'</b><span>A pagar</span><b class="num">−'+money(pag)+'</b></div>'
-      +'<span class="muted">Soma '+esc(livres().map(p=>p.curto).join(", ")||"suas personalidades")+'. Reserva e benefícios ficam de fora.</span>'));
+      +'<span class="muted" style="margin-top:-6px">= hoje '+money(atual)+' + falta receber '+money(E.falta)+' − falta pagar '+money(G.falta)+'</span>'
+      +'<div class="kv"><span>Entradas do mês</span><b class="num">'+money(E.tot)+'</b><span style="padding-left:12px">já caiu</span><b class="num">'+money(E.foi)+'</b><span style="padding-left:12px">falta receber</span><b class="num pos">+'+money(E.falta)+'</b>'
+      +'<span style="margin-top:6px">Saídas do mês</span><b class="num" style="margin-top:6px">'+money(G.tot)+'</b><span style="padding-left:12px">já pago</span><b class="num">'+money(G.foi)+'</b>'
+      +(G.antes?'<span style="padding-left:12px">já no saldo (antes de você começar)</span><b class="num">'+money(G.antes)+'</b>':'')
+      +'<span style="padding-left:12px">falta pagar</span><b class="num">−'+money(G.falta)+'</b></div>'
+      +'<span class="muted">Soma '+esc(livres().map(p=>p.curto).join(", ")||"suas personalidades")+'. Reserva e benefícios ficam de fora: o que vai para a reserva conta como saída.'
+      +(internas?' Transferências entre elas ('+money(internas)+') não contam, porque o dinheiro continua seu.':'')
+      +(G.antes?' Se alguma conta "já no saldo" ainda não saiu, toque em "ainda não paguei" na lista de contas.':'')+'</span>'));
   } else {
     const doM = S.movs.filter(m=>ymOf(m.data)===ym);
     const ent = doM.filter(m=>m.tipo==="entrada" && !S.pers.find(p=>p.id===m.conta&&p.beneficio)).reduce((t,m)=>t+m.valor,0);
@@ -1933,7 +1954,7 @@ function render(){
   const rolagem = {}; app.querySelectorAll(".slides[data-id]").forEach(el=>{ if(el.scrollLeft) rolagem[el.dataset.id]=el.scrollLeft; });
   app.innerHTML = S.view==="perfil"?viewPerfil():S.view==="extrato"?viewExtrato():S.view==="ajustes"?viewAjustes():S.view==="editar"?viewEditar():S.view==="notif"?viewNotif():S.view==="explorar"?viewExplorar():S.view==="bot"?viewBot():S.view==="botpost"?viewBotPost():S.view==="setup"&&S.setup?viewSetup():viewHome();
   renderNav();
-  app.querySelectorAll(".slides[data-id]").forEach(el=>{ const x=rolagem[el.dataset.id]; if(x){ el.style.scrollBehavior="auto"; el.scrollLeft=x; atualizarContador(el); } });
+  app.querySelectorAll(".slides[data-id]").forEach(el=>{ const x=rolagem[el.dataset.id]; if(x){ el.style.scrollBehavior="auto"; el.scrollLeft=x; } atualizarContador(el); });
   hidratarFotos(app);
   if(focusId){ const el=document.getElementById(focusId); if(el){ el.focus(); if(el.setSelectionRange && /^(text|search)$/.test(el.type||"text") && el.tagName==="INPUT"){ const l=el.value.length; try{el.setSelectionRange(l,l);}catch(e){} } } }
 }
@@ -1971,6 +1992,8 @@ document.addEventListener("click", e=>{
     case "wz-ev-q": S.setup.form=eventoRapido(b.dataset.q); S.setup.err=""; render(); { const el=document.getElementById(b.dataset.q==="13a"||b.dataset.q==="13b"?"f-valor":"f-nome"); if(el) el.focus(); } break;
     case "wz-ev-edit": { const ev=PL().eventos.find(x=>x.id===b.dataset.id); if(ev){ S.setup.form=Object.assign({kind:"evento"},ev); S.setup.err=""; render(); } break; }
     case "wz-cancel": S.setup.form=null; S.setup.err=""; render(); break;
+    case "reabrir": (async()=>{ PL().abertos=(PL().abertos||[]).filter(k=>k!==b.dataset.k).concat([b.dataset.k]); await salvarCfg(); render(); toast("Ok, conta como pendente"); })(); break;
+    case "fechar-antes": (async()=>{ PL().abertos=(PL().abertos||[]).filter(k=>k!==b.dataset.k); await salvarCfg(); render(); toast("Ok, já estava no saldo"); })(); break;
     case "wz-limpa-inicio": S.setup.form.inicioMes=""; render(); break;
     case "wz-save": salvarFormSetup(); break;
     case "wz-del": apagarFormSetup(); break;
@@ -2075,11 +2098,19 @@ document.addEventListener("change", e=>{
     S.form.fotoFile=file; S.form.fotoUrl=URL.createObjectURL(file); S.err=""; renderSheet();
   }
 });
+function ajustarAltura(el, i){
+  const s = el.children[i]; if(!s) return;
+  const h = s.offsetHeight; if(h && el.style.height !== h+"px") el.style.height = h+"px";
+}
+function ajustarTodas(root){ (root||document).querySelectorAll(".slides").forEach(el=>ajustarAltura(el, Math.round(el.scrollLeft/Math.max(1,el.clientWidth)))); }
+addEventListener("resize", ()=>{ clearTimeout(ajustarTodas.t); ajustarTodas.t=setTimeout(()=>ajustarTodas(),150); });
 function atualizarContador(el){
   const i = Math.round(el.scrollLeft/Math.max(1,el.clientWidth)), car = el.parentElement;
+  ajustarAltura(el, i);
   const c = car.querySelector(".cnt"); if(c) c.textContent = (i+1)+"/"+el.dataset.n;
   car.querySelectorAll(".cdots span").forEach((d,j)=>d.classList.toggle("on", j===i));
 }
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>ajustarTodas());
 document.addEventListener("scroll", e=>{ const el=e.target; if(el && el.classList && el.classList.contains("slides")) atualizarContador(el); }, true);
 document.addEventListener("keydown", e=>{
   if(e.key!=="Escape") return;
