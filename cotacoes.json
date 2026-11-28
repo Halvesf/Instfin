@@ -1,12 +1,12 @@
 {
- "atualizado": "2026-11-27T20:20:52Z",
+ "atualizado": "2026-11-28T02:49:56Z",
  "tickers": [
   "MXRF11"
  ],
  "ativos": {
   "MXRF11": {
-   "preco": 8.98,
-   "var": 3.34,
+   "preco": 8.97,
+   "var": 3.22,
    "fonte": "B3",
    "nome": "",
    "divs": [
